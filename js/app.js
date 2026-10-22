@@ -1416,10 +1416,6 @@ ${file.data.slice(0,30000)}
 
     }
 
-      throw new Error("La réponse de l'IA est vide.");
-
-    }
-
     history.push(
 
       {
