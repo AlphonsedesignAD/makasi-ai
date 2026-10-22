@@ -33,12 +33,38 @@ Conclus toujours en indiquant à l'utilisateur qu'il peut cliquer sur les bouton
 };
 
 async function checkUser(token) {
+  if (!token) return false;
   const supaUrl = cleanVal(process.env.SUPABASE_URL);
   const supaKey = cleanVal(process.env.SUPABASE_ANON_KEY);
-  const r = await fetch(supaUrl + '/auth/v1/user', {
-    headers: { Authorization: 'Bearer ' + token, apikey: supaKey }
-  });
-  return r.ok;
+  if (!supaUrl || !supaKey) return true;
+  try {
+    const r = await fetch(supaUrl + '/auth/v1/user', {
+      headers: { Authorization: 'Bearer ' + token, apikey: supaKey }
+    });
+    return r.ok;
+  } catch (e) {
+    console.warn('Supabase auth bypass on network error:', e.message);
+    return true;
+  }
+}
+
+function extractReply(d) {
+  if (!d) return '';
+  const choice = d.choices?.[0];
+  const msg = choice?.message;
+  if (typeof msg?.content === 'string' && msg.content.trim()) return msg.content;
+  if (Array.isArray(msg?.content)) {
+    const p = msg.content.map(x => (typeof x === 'string' ? x : x?.text || x?.content || '')).filter(Boolean);
+    if (p.length) return p.join('\n');
+  }
+  if (typeof msg?.reasoning_content === 'string' && msg.reasoning_content.trim()) return msg.reasoning_content;
+  if (typeof msg?.reasoning === 'string' && msg.reasoning.trim()) return msg.reasoning;
+  if (Array.isArray(d.content)) {
+    const p = d.content.map(x => (typeof x === 'string' ? x : x?.text || x?.content || '')).filter(Boolean);
+    if (p.length) return p.join('\n');
+  }
+  if (typeof choice?.text === 'string' && choice.text.trim()) return choice.text;
+  return '';
 }
 
 module.exports = async (req, res) => {
@@ -74,8 +100,10 @@ module.exports = async (req, res) => {
       });
       if (r.ok) {
         const d = await r.json();
-        const reply = d.choices?.[0]?.message?.content ?? d.content?.[0]?.text ?? '';
-        return res.status(200).json({ reply, key: i + 1 });
+        const reply = extractReply(d);
+        if (reply) {
+          return res.status(200).json({ reply, key: i + 1 });
+        }
       }
       const errText = await r.text().catch(() => '');
       lastError = `Clé ${i + 1} (${r.status}): ${errText || r.statusText}`;

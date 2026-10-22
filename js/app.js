@@ -1289,20 +1289,17 @@ ${file.data.slice(0,30000)}
 
     });
 
-    const { data, error: sessionError } =
-      await sb.auth.getSession();
-
-    if (sessionError) throw sessionError;
-
-    const token = data.session?.access_token;
-
+    let { data: sessionData } = await sb.auth.getSession();
+    let token = sessionData?.session?.access_token;
     if (!token) {
-
-      throw new Error("Votre session a expiré.");
-
+      const { data: refreshed } = await sb.auth.refreshSession();
+      token = refreshed?.session?.access_token;
+    }
+    if (!token) {
+      throw new Error("Connexion requise. Veuillez vous reconnecter.");
     }
 
-    const response = await fetch("/api/chat", {
+    let response = await fetch("/api/chat", {
 
       method: "POST",
 
@@ -1335,6 +1332,47 @@ ${file.data.slice(0,30000)}
 
     });
 
+    if (response.status === 401) {
+      const { data: refreshed } = await sb.auth.refreshSession();
+      if (refreshed?.session?.access_token) {
+        token = refreshed.session.access_token;
+        response = await fetch("/api/chat", {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            mode,
+            messages: [
+              ...history.slice(-18),
+              { role: "user", content }
+            ]
+          })
+        });
+      }
+    }
+
+    function parseAiReply(d) {
+      if (!d) return "";
+      const choice = d.choices?.[0];
+      const msg = choice?.message;
+      if (typeof msg?.content === "string" && msg.content.trim()) return msg.content;
+      if (Array.isArray(msg?.content)) {
+        const parts = msg.content.map(x => (typeof x === "string" ? x : x?.text || x?.content || "")).filter(Boolean);
+        if (parts.length) return parts.join("\n");
+      }
+      if (typeof msg?.reasoning_content === "string" && msg.reasoning_content.trim()) return msg.reasoning_content;
+      if (typeof msg?.reasoning === "string" && msg.reasoning.trim()) return msg.reasoning;
+      if (Array.isArray(d.content)) {
+        const parts = d.content.map(x => (typeof x === "string" ? x : x?.text || x?.content || "")).filter(Boolean);
+        if (parts.length) return parts.join("\n");
+      }
+      if (typeof choice?.text === "string" && choice.text.trim()) return choice.text;
+      return "";
+    }
+
     let result = await response.json();
 
     if (result.fallback) {
@@ -1358,7 +1396,7 @@ ${file.data.slice(0,30000)}
       }
       const directData = await directResponse.json();
       result = {
-        reply: directData.choices?.[0]?.message?.content ?? directData.content?.[0]?.text ?? ""
+        reply: parseAiReply(directData)
       };
     } else if (!response.ok) {
 
@@ -1370,9 +1408,13 @@ ${file.data.slice(0,30000)}
 
     if (version !== chatVersion) return;
 
-    const reply = result.reply;
+    const reply = typeof result.reply === "string" ? result.reply : parseAiReply(result);
 
     if (typeof reply !== "string" || !reply.trim()) {
+
+      throw new Error("L'IA n'a pas renvoyé de texte. Réessayez votre question.");
+
+    }
 
       throw new Error("La réponse de l'IA est vide.");
 
