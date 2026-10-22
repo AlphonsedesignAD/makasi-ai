@@ -1,9 +1,14 @@
-// Fonction serveur Vercel : garde les clés secrètes + bascule automatique entre 4 clés.
+// Fonction serveur Vercel : garde les clés secrètes + bascule automatique (jusqu'à 20 clés).
 const cleanVal = v => String(v || '').replace(/^["']|["']$/g, '').trim();
 
-const KEYS = () => [1, 2, 3, 4]
-  .map(i => cleanVal(process.env['CODECRAFT_KEY_' + i]))
-  .filter(Boolean);
+const KEYS = () => {
+  const keys = [];
+  for (let i = 1; i <= 20; i++) {
+    const k = cleanVal(process.env['CODECRAFT_KEY_' + i]);
+    if (k) keys.push(k);
+  }
+  return keys;
+};
 
 const cleanUrl = url => {
   let u = cleanVal(url || 'https://codecraftapi.com/v1/chat/completions');
