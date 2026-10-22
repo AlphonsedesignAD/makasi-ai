@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+>
+
+<meta
+  name="theme-color"
+  content="#080f0d"
+>
+
+<meta
+  name="description"
+  content="Makasi AI, votre assistant intelligent pour créer, apprendre, coder et travailler plus efficacement."
+>
+
+<title>Makasi AI — Votre intelligence, augmentée.</title>
+
+<link rel="icon" href="assets/logo.svg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+
+<link
+  href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+>
+
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+<!-- FOND ANIMÉ -->
+
+<div class="ambient-background" aria-hidden="true">
+
+  <div class="ambient-orb orb-one"></div>
+
+  <div class="ambient-orb orb-two"></div>
+
+  <div class="ambient-orb orb-three"></div>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- AUTHENTIFICATION -->
+<!-- ========================= -->
+
+<section id="auth" class="auth-page">
+
+  <div class="auth-layout">
+
+    <!-- PARTIE GAUCHE -->
+
+    <div class="auth-showcase">
+
+      <div class="showcase-top">
+
+        <div class="brand">
+
+          <img src="assets/logo.svg" alt="Makasi AI">
+
+          <span>Makasi <b>AI</b></span>
+
+        </div>
+
+      </div>
+
+      <div class="showcase-content">
+
+        <div class="showcase-badge">
+
+          <span class="status-dot"></span>
+
+          L'intelligence artificielle nouvelle génération
+
+        </div>
+
+        <h1>
+
+          Imaginez plus.<br>
+
+          Créez <span>sans limites.</span>
+
+        </h1>
+
+        <p>
+
+          Découvrez une nouvelle façon de travailler,
+          d'apprendre et de donner vie à vos idées
+          avec Makasi AI.
+
+        </p>
+
+        <div class="showcase-features">
+
+          <div class="showcase-feature">
+
+            <div class="feature-icon">
+              <i class="fa-solid fa-brain"></i>
+            </div>
+
+            <div>
+
+              <strong>Intelligence avancée</strong>
+
+              <small>Des réponses adaptées à vos besoins.</small>
+
+            </div>
+
+          </div>
+
+          <div class="showcase-feature">
+
+            <div class="feature-icon">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+
+            <div>
+
+              <strong>Créativité illimitée</strong>
+
+              <small>Transformez vos idées en projets.</small>
+
+            </div>
+
+          </div>
+
+          <div class="showcase-feature">
+
+            <div class="feature-icon">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+
+            <div>
+
+              <strong>Votre espace personnel</strong>
+
+              <small>Retrouvez vos conversations et fichiers.</small>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="showcase-footer">
+
+        © 2026 Alphonse Design — Tous droits réservés.
+
+      </div>
+
+    </div>
+
+
+    <!-- PARTIE DROITE -->
+
+    <div class="auth-form-area">
+
+      <div class="auth-mobile-brand">
+
+        <img src="assets/logo.svg" alt="Makasi AI">
+
+        <span>Makasi AI</span>
+
+      </div>
+
+      <div class="auth-card">
+
+        <div class="auth-heading">
+
+          <div class="auth-icon">
+
+            <i class="fa-solid fa-sparkles"></i>
+
+          </div>
+
+          <h2 id="auth-title">
+
+            Heureux de vous revoir
+
+          </h2>
+
+          <p id="auth-subtitle">
+
+            Connectez-vous pour accéder à votre espace intelligent.
+
+          </p>
+
+        </div>
+
+        <form id="auth-form">
+
+          <div class="form-group">
+
+            <label for="email">
+
+              Adresse e-mail
+
+            </label>
+
+            <div class="input-wrapper">
+
+              <i class="fa-regular fa-envelope"></i>
+
+              <input
+                id="email"
+                type="email"
+                placeholder="exemple@email.com"
+                autocomplete="email"
+                required
+              >
+
+            </div>
+
+          </div>
+
+          <div class="form-group">
+
+            <div class="label-row">
+
+              <label for="password">
+
+                Mot de passe
+
+              </label>
+
+              <a href="#" id="auth-reset">
+
+                Mot de passe oublié ?
+
+              </a>
+
+            </div>
+
+            <div class="input-wrapper">
+
+              <i class="fa-solid fa-lock"></i>
+
+              <input
+                id="password"
+                type="password"
+                placeholder="Votre mot de passe"
+                autocomplete="current-password"
+                minlength="6"
+                required
+              >
+
+              <button
+                type="button"
+                id="toggle-password"
+                class="password-toggle"
+                aria-label="Afficher le mot de passe"
+              >
+
+                <i class="fa-regular fa-eye"></i>
+
+              </button>
+
+            </div>
+
+          </div>
+
+          <p id="auth-msg" class="auth-message" role="alert"></p>
+
+          <button
+            type="submit"
+            id="auth-submit"
+            class="auth-primary-button"
+          >
+
+            <span>Se connecter</span>
+
+            <i class="fa-solid fa-arrow-right"></i>
+
+          </button>
+
+        </form>
+
+        <div class="auth-divider">
+
+          <span>ou continuer avec</span>
+
+        </div>
+
+        <button
+          id="auth-google"
+          class="google-button"
+          type="button"
+        >
+
+          <svg width="20" height="20" viewBox="0 0 48 48">
+
+            <path fill="#EA4335"
+              d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+
+            <path fill="#4285F4"
+              d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.27 5.48-4.8 7.18l7.73 6C44.38 38.03 46.98 31.88 46.98 24.55z"/>
+
+            <path fill="#FBBC05"
+              d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.2A23.9 23.9 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78l7.97-6.19z"/>
+
+            <path fill="#34A853"
+              d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.14 1.44-4.89 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+
+          </svg>
+
+          Google
+
+        </button>
+
+        <p class="auth-switch-text">
+
+          <span id="auth-switch-label">
+
+            Vous n'avez pas encore de compte ?
+
+          </span>
+
+          <a href="#" id="auth-switch">
+
+            Créer un compte
+
+          </a>
+
+        </p>
+
+        <div class="auth-bottom">
+
+          En continuant, vous acceptez les conditions
+          d'utilisation de Makasi AI.
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ========================= -->
+<!-- APPLICATION -->
+<!-- ========================= -->
+
+<div id="app" class="app" hidden>
+
+  <!-- SIDEBAR -->
+
+  <aside class="sidebar" id="side">
+
+    <div class="sidebar-header">
+
+      <div class="brand">
+
+        <img src="assets/logo.svg" alt="Makasi AI">
+
+        <span>Makasi <b>AI</b></span>
+
+      </div>
+
+      <button
+        id="close-sidebar"
+        class="icon-button mobile-only"
+        aria-label="Fermer le menu"
+      >
+
+        <i class="fa-solid fa-xmark"></i>
+
+      </button>
+
+    </div>
+
+    <button id="new-chat" class="new-chat-button">
+
+      <i class="fa-solid fa-plus"></i>
+
+      <span>Nouvelle discussion</span>
+
+      <span class="shortcut-hint">Ctrl K</span>
+
+    </button>
+
+    <div class="sidebar-search">
+
+      <i class="fa-solid fa-magnifying-glass"></i>
+
+      <input
+        id="search-convs"
+        placeholder="Rechercher une discussion..."
+        aria-label="Rechercher une discussion"
+      >
+
+    </div>
+
+    <div class="sidebar-section">
+
+      <div class="section-title">
+
+        <span>ESPACE DE TRAVAIL</span>
+
+      </div>
+
+      <button class="nav-item active" id="nav-chat">
+
+        <i class="fa-regular fa-comments"></i>
+
+        <span>Discussions</span>
+
+      </button>
+
+      <button class="nav-item" id="open-files">
+
+        <i class="fa-regular fa-folder-open"></i>
+
+        <span>Mes fichiers</span>
+
+      </button>
+
+      <button class="nav-item" id="open-settings">
+
+        <i class="fa-solid fa-sliders"></i>
+
+        <span>Paramètres</span>
+
+      </button>
+
+    </div>
+
+    <div class="history-header">
+
+      <span>HISTORIQUE</span>
+
+      <i class="fa-regular fa-clock"></i>
+
+    </div>
+
+    <nav
+      id="convs"
+      class="conversations"
+      aria-label="Historique des conversations"
+    ></nav>
+
+    <div class="sidebar-bottom">
+
+      <div class="sidebar-premium">
+
+        <div class="premium-icon">
+
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+
+        </div>
+
+        <strong>Votre créativité commence ici</strong>
+
+        <p>
+
+          Explorez toutes les possibilités de Makasi AI.
+
+        </p>
+
+      </div>
+
+      <div class="user-profile">
+
+        <div id="user-avatar" class="user-avatar">M</div>
+
+        <div class="user-details">
+
+          <strong id="user-name">Utilisateur</strong>
+
+          <small id="user-email">Bienvenue</small>
+
+        </div>
+
+        <button
+          id="logout"
+          class="icon-button"
+          aria-label="Se déconnecter"
+          title="Déconnexion"
+        >
+
+          <i class="fa-solid fa-right-from-bracket"></i>
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </aside>
+
+
+  <div id="scrim" class="sidebar-overlay"></div>
+
+
+  <!-- MAIN -->
+
+  <main class="main-content">
+
+    <header class="topbar">
+
+      <div class="topbar-left">
+
+        <button
+          id="burger"
+          class="icon-button mobile-only"
+          aria-label="Ouvrir le menu"
+        >
+
+          <i class="fa-solid fa-bars-staggered"></i>
+
+        </button>
+
+        <div class="topbar-title">
+
+          <strong>Makasi AI</strong>
+
+          <span>
+
+            <i class="fa-solid fa-circle"></i>
+
+            Assistant intelligent
+
+          </span>
+
+        </div>
+
+      </div>
+
+      <div class="topbar-actions">
+
+        <div class="model-badge">
+
+          <i class="fa-solid fa-sparkles"></i>
+
+          <span>Makasi Assistant</span>
+
+          <i class="fa-solid fa-chevron-down"></i>
+
+        </div>
+
+        <button
+          id="theme-toggle"
+          class="icon-button"
+          title="Changer le thème"
+          aria-label="Changer le thème"
+        >
+
+          <i class="fa-solid fa-moon"></i>
+
+        </button>
+
+        <button
+          id="top-new-chat"
+          class="icon-button"
+          title="Nouvelle discussion"
+          aria-label="Nouvelle discussion"
+        >
+
+          <i class="fa-regular fa-pen-to-square"></i>
+
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <!-- MODES -->
+
+    <div class="mode-bar">
+
+      <div id="modes" class="mode-list">
+
+        <button class="mode-chip active" data-mode="chat">
+
+          <i class="fa-regular fa-message"></i>
+
+          Discuter
+
+        </button>
+
+        <button class="mode-chip" data-mode="doc">
+
+          <i class="fa-regular fa-file-lines"></i>
+
+          Documents
+
+        </button>
+
+        <button class="mode-chip" data-mode="code">
+
+          <i class="fa-solid fa-code"></i>
+
+          Programmation
+
+        </button>
+
+        <button class="mode-chip" data-mode="files">
+
+          <i class="fa-solid fa-folder-tree"></i>
+
+          Analyse de fichiers
+
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- CONVERSATION -->
+
+    <section
+      id="thread"
+      class="chat-thread"
+      aria-label="Conversation"
+      aria-live="polite"
+    >
+
+      <div id="welcome" class="welcome-screen">
+
+        <div class="welcome-logo">
+
+          <div class="welcome-logo-glow"></div>
+
+          <img src="assets/logo.svg" alt="Makasi AI">
+
+        </div>
+
+        <div class="welcome-badge">
+
+          <span class="status-dot"></span>
+
+          Votre partenaire intelligent
+
+        </div>
+
+        <h1>
+
+          Bonjour, <span id="welcome-name">créateur</span>
+
+          <span class="wave">✦</span>
+
+        </h1>
+
+        <h2>
+
+          Qu'allons-nous <span>imaginer aujourd'hui ?</span>
+
+        </h2>
+
+        <p>
+
+          Posez une question, explorez une idée,
+          créez un document ou développez votre prochain projet.
+
+        </p>
+
+        <div class="suggestion-grid">
+
+          <button
+            class="suggestion-card"
+            data-s="Rédige un document professionnel avec une présentation élégante."
+          >
+
+            <div class="suggestion-icon purple">
+
+              <i class="fa-regular fa-file-word"></i>
+
+            </div>
+
+            <strong>Créer un document</strong>
+
+            <span>Rédaction et mise en forme</span>
+
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+
+          </button>
+
+          <button
+            class="suggestion-card"
+            data-s="Aide-moi à développer un site web moderne et responsive en HTML CSS et JavaScript."
+          >
+
+            <div class="suggestion-icon blue">
+
+              <i class="fa-solid fa-code"></i>
+
+            </div>
+
+            <strong>Développer un projet</strong>
+
+            <span>Code et programmation</span>
+
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+
+          </button>
+
+          <button
+            class="suggestion-card"
+            data-s="Crée un tableau Excel de gestion financière pour une petite entreprise avec revenus et dépenses."
+          >
+
+            <div class="suggestion-icon green">
+
+              <i class="fa-solid fa-chart-column"></i>
+
+            </div>
+
+            <strong>Analyser des données</strong>
+
+            <span>Tableaux et statistiques</span>
+
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+
+          </button>
+
+          <button
+            class="suggestion-card"
+            data-s="Propose-moi cinq idées innovantes de business numérique en République démocratique du Congo."
+          >
+
+            <div class="suggestion-icon orange">
+
+              <i class="fa-solid fa-lightbulb"></i>
+
+            </div>
+
+            <strong>Explorer des idées</strong>
+
+            <span>Créativité et innovation</span>
+
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- COMPOSER -->
+
+    <footer class="composer-area">
+
+      <div class="composer-container">
+
+        <div id="chips" class="attached-files"></div>
+
+        <div class="composer-box">
+
+          <textarea
+            id="input"
+            rows="1"
+            maxlength="30000"
+            placeholder="Demandez ce que vous voulez à Makasi AI..."
+            aria-label="Votre message"
+          ></textarea>
+
+          <div class="composer-toolbar">
+
+            <div class="composer-tools">
+
+              <label
+                class="tool-button"
+                for="file-input"
+                title="Joindre un fichier"
+              >
+
+                <i class="fa-solid fa-paperclip"></i>
+
+              </label>
+
+              <input
+                id="file-input"
+                type="file"
+                multiple
+                hidden
+                accept="image/*,.txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.sql,.xml,.log"
+              >
+
+              <button
+                id="quick-prompt"
+                class="tool-button"
+                title="Suggestion de question"
+                aria-label="Suggestion de question"
+              >
+
+                <i class="fa-regular fa-lightbulb"></i>
+
+              </button>
+
+              <span class="toolbar-separator"></span>
+
+              <span class="composer-model">
+
+                <span class="status-dot"></span>
+
+                Makasi AI
+
+              </span>
+
+            </div>
+
+            <div class="composer-right">
+
+              <span id="char-counter" class="char-counter"></span>
+
+              <button
+                id="send"
+                class="send-button"
+                aria-label="Envoyer le message"
+              >
+
+                <i class="fa-solid fa-arrow-up"></i>
+
+              </button>
+
+              <button
+                id="stop"
+                class="stop-button"
+                aria-label="Arrêter la génération"
+                hidden
+              >
+
+                <i class="fa-solid fa-stop"></i>
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="composer-footer">
+
+          <span>
+
+            <i class="fa-solid fa-shield-halved"></i>
+
+            Makasi AI peut commettre des erreurs.
+
+          </span>
+
+          <span class="copyright">
+
+            © 2026 Alphonse Design — Tous droits réservés.
+
+          </span>
+
+        </div>
+
+      </div>
+
+    </footer>
+
+  </main>
+
+</div>
+
+
+<!-- ========================= -->
+<!-- WHATSAPP -->
+<!-- ========================= -->
+
+<a
+  href="https://wa.me/243971404824?text=Bonjour%20Alphonse%2C%20je%20vous%20contacte%20depuis%20Makasi%20AI."
+  class="whatsapp-float"
+  target="_blank"
+  rel="noopener noreferrer"
+  aria-label="Nous contacter sur WhatsApp"
+  title="Contactez-nous sur WhatsApp"
+>
+
+  <span class="whatsapp-tooltip">
+
+    Besoin d'aide ? Écrivez-nous !
+
+  </span>
+
+  <span class="whatsapp-pulse"></span>
+
+  <i class="fa-brands fa-whatsapp"></i>
+
+</a>
+
+
+<!-- ========================= -->
+<!-- MODAL FICHIERS -->
+<!-- ========================= -->
+
+<dialog id="files-dlg" class="modal">
+
+  <div class="modal-header">
+
+    <div>
+
+      <h3>
+
+        <i class="fa-regular fa-folder-open"></i>
+
+        Mes fichiers
+
+      </h3>
+
+      <p>Retrouvez vos documents et images.</p>
+
+    </div>
+
+    <button id="close-files" class="icon-button" aria-label="Fermer">
+
+      <i class="fa-solid fa-xmark"></i>
+
+    </button>
+
+  </div>
+
+  <div id="files-list" class="modal-content"></div>
+
+</dialog>
+
+
+<!-- ========================= -->
+<!-- PARAMÈTRES -->
+<!-- ========================= -->
+
+<dialog id="settings-dlg" class="modal">
+
+  <div class="modal-header">
+
+    <div>
+
+      <h3>
+
+        <i class="fa-solid fa-gear"></i>
+
+        Paramètres
+
+      </h3>
+
+      <p>Personnalisez votre expérience Makasi AI.</p>
+
+    </div>
+
+    <button id="close-settings" class="icon-button" aria-label="Fermer">
+
+      <i class="fa-solid fa-xmark"></i>
+
+    </button>
+
+  </div>
+
+  <div class="modal-content">
+
+    <div class="settings-option">
+
+      <div>
+
+        <strong>Apparence</strong>
+
+        <p>Choisissez votre thème préféré.</p>
+
+      </div>
+
+      <select id="theme-select">
+
+        <option value="dark">Sombre</option>
+
+        <option value="light">Clair</option>
+
+        <option value="system">Système</option>
+
+      </select>
+
+    </div>
+
+    <div class="settings-option">
+
+      <div>
+
+        <strong>Animations</strong>
+
+        <p>Activer les effets visuels.</p>
+
+      </div>
+
+      <input
+        id="animations-toggle"
+        type="checkbox"
+        checked
+      >
+
+    </div>
+
+    <div class="settings-about">
+
+      <img src="assets/logo.svg" alt="Makasi AI">
+
+      <strong>Makasi AI</strong>
+
+      <span>Votre intelligence, augmentée.</span>
+
+      <small>
+
+        © 2026 Alphonse Design — Tous droits réservés.
+
+      </small>
+
+    </div>
+
+  </div>
+
+</dialog>
+
+
+<!-- TOAST -->
+
+<div
+  id="toast"
+  class="toast"
+  role="status"
+  aria-live="polite"
+></div>
+
+
+<!-- LIBRAIRIES -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script src="js/config.js"></script>
+
+<script src="js/app.js"></script>
+
+</body>
+
+</html>
