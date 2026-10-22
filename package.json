@@ -1,1 +1,1 @@
-{"name":"makasi-ai","version":"1.0.0","private":true,"scripts":{"start":"node server.js","dev":"node server.js"},"dependencies":{"dotenv":"^18.0.8","express":"^5.3.0"}}
+{"name":"makasi-ai","version":"1.0.0","private":true,"scripts":{"build":"echo 'Build complete'","start":"node server.js","dev":"node server.js"},"dependencies":{"dotenv":"^18.0.8","express":"^5.3.0"}}

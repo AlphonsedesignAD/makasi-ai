@@ -1,5 +1,6 @@
 // Serveur local Express — remplace "vercel dev" pour tester en local
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const chatHandler = require('./api/chat');
 
@@ -11,6 +12,11 @@ app.use(express.static(__dirname));
 
 // Route API — adapte le handler Vercel pour Express
 app.post('/api/chat', (req, res) => chatHandler(req, res));
+
+// Page d'accueil
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
