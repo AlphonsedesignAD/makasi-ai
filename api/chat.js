@@ -79,6 +79,17 @@ module.exports = async (req, res) => {
       }
       const errText = await r.text().catch(() => '');
       lastError = `Clé ${i + 1} (${r.status}): ${errText || r.statusText}`;
+
+      // Si Cloudflare bloque l'IP du datacenter Vercel (403 challenge), bascule intelligente sur le navigateur client
+      if (r.status === 403 && (errText.includes('Just a moment') || errText.includes('Cloudflare') || errText.includes('cf-mitigated') || !errText)) {
+        return res.status(200).json({
+          fallback: true,
+          key: keys[i],
+          apiUrl,
+          body: JSON.parse(body)
+        });
+      }
+
       if (!RETRY.includes(r.status)) {
         return res.status(r.status).json({ error: lastError });
       }
@@ -88,5 +99,16 @@ module.exports = async (req, res) => {
       console.warn('Clé ' + (i + 1) + ' injoignable, bascule…', e.message);
     }
   }
+
+  // Si le datacenter Vercel ne peut joindre l'API, permettre au navigateur du client de le faire directement
+  if (keys.length) {
+    return res.status(200).json({
+      fallback: true,
+      key: keys[0],
+      apiUrl,
+      body: JSON.parse(body)
+    });
+  }
+
   res.status(503).json({ error: lastError || 'Toutes les clés sont épuisées. Réessaie plus tard.' });
 };

@@ -1335,9 +1335,32 @@ ${file.data.slice(0,30000)}
 
     });
 
-    const result = await response.json();
+    let result = await response.json();
 
-    if (!response.ok) {
+    if (result.fallback) {
+      // Vercel est bloqué par Cloudflare WAF, requête directe exécutée depuis le navigateur
+      const directResponse = await fetch(result.apiUrl, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${result.key}`
+        },
+        body: JSON.stringify(result.body)
+      });
+      if (!directResponse.ok) {
+        const errorData = await directResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.error?.message ||
+          errorData.error ||
+          `Erreur IA (${directResponse.status})`
+        );
+      }
+      const directData = await directResponse.json();
+      result = {
+        reply: directData.choices?.[0]?.message?.content ?? directData.content?.[0]?.text ?? ""
+      };
+    } else if (!response.ok) {
 
       throw new Error(
         result.error || "Erreur du serveur."
