@@ -1,10 +1,12 @@
 // Fonction serveur Vercel : garde les clés secrètes + bascule automatique entre 4 clés.
+const cleanVal = v => String(v || '').replace(/^["']|["']$/g, '').trim();
+
 const KEYS = () => [1, 2, 3, 4]
-  .map(i => (process.env['CODECRAFT_KEY_' + i] || '').trim())
+  .map(i => cleanVal(process.env['CODECRAFT_KEY_' + i]))
   .filter(Boolean);
 
 const cleanUrl = url => {
-  let u = (url || 'https://codecraftapi.com/v1/chat/completions').trim();
+  let u = cleanVal(url || 'https://codecraftapi.com/v1/chat/completions');
   if (u.startsWith('ttps://')) u = 'h' + u;
   u = u.replace(/\/v1\/v1\//, '/v1/');
   return u;
@@ -31,8 +33,10 @@ Conclus toujours en indiquant à l'utilisateur qu'il peut cliquer sur les bouton
 };
 
 async function checkUser(token) {
-  const r = await fetch(process.env.SUPABASE_URL + '/auth/v1/user', {
-    headers: { Authorization: 'Bearer ' + token, apikey: process.env.SUPABASE_ANON_KEY }
+  const supaUrl = cleanVal(process.env.SUPABASE_URL);
+  const supaKey = cleanVal(process.env.SUPABASE_ANON_KEY);
+  const r = await fetch(supaUrl + '/auth/v1/user', {
+    headers: { Authorization: 'Bearer ' + token, apikey: supaKey }
   });
   return r.ok;
 }
@@ -47,7 +51,7 @@ module.exports = async (req, res) => {
   if (!keys.length) return res.status(500).json({ error: 'Aucune clé API configurée' });
 
   const apiUrl = cleanUrl(process.env.CODECRAFT_API_URL);
-  const model = (process.env.CODECRAFT_MODEL || 'claude-sonnet-5').trim();
+  const model = cleanVal(process.env.CODECRAFT_MODEL) || 'claude-sonnet-5';
 
   const body = JSON.stringify({
     model,
