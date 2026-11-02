@@ -1,0 +1,26 @@
+# Variables d'environnement secrètes (JAMAIS sur GitHub)
+.env
+.env*.local
+*.env
+
+# IDE
+.vscode/
+.idea/
+
+# Vercel
+.vercel
+
+# Node / dépendances
+node_modules/
+package-lock.json
+
+# Builds & caches
+dist/
+build/
+.DS_Store
+Thumbs.db
+
+# Fichiers temporaires locaux
+*.backup.js
+app_backup.js
+test_payload.json
