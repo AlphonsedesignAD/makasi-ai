@@ -195,7 +195,10 @@ function md(text) {
           </div>
           <div class="img-overlay">
             <span class="img-caption">🎨 ${esc(caption)}</span>
-            <a href="${img.url}" target="_blank" rel="noopener noreferrer" class="img-btn-download">🔍 Voir en grand</a>
+            <div class="img-actions-right">
+              <button type="button" class="img-btn-action" data-reload-img="${esc(img.url)}" title="Générer une nouvelle variante de cette image">🔄 Relancer</button>
+              <a href="${img.url}" target="_blank" rel="noopener noreferrer" class="img-btn-download">🔍 Plein écran</a>
+            </div>
           </div>
         </div>
       `);
@@ -525,7 +528,7 @@ async function ask(c) {
   if (isImg) {
     const promptClean = extractImagePrompt(lastText);
     const seed = Math.floor(Math.random() * 8999999 + 1000000);
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptClean)}?width=1024&height=1024&nologo=true&seed=${seed}`;
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptClean)}?model=turbo&width=1024&height=1024&nologo=true&seed=${seed}`;
     autoImageMarkdown = `![${promptClean}](${imageUrl})\n\n`;
   }
 
@@ -792,6 +795,29 @@ el.messages.addEventListener('click', async (e) => {
     await navigator.clipboard.writeText(copyCode.closest('.codeblock').querySelector('code').textContent);
     copyCode.textContent = 'Copié ✓';
     setTimeout(() => (copyCode.textContent = 'Copier'), 1500);
+    return;
+  }
+
+  // Relancer une image avec une nouvelle seed
+  const reloadImgBtn = e.target.closest('[data-reload-img]');
+  if (reloadImgBtn) {
+    const card = reloadImgBtn.closest('.ai-generated-image');
+    if (card) {
+      const img = card.querySelector('img');
+      const dlLink = card.querySelector('.img-btn-download');
+      try {
+        const u = new URL(reloadImgBtn.dataset.reloadImg);
+        const newSeed = Math.floor(Math.random() * 8999999 + 1000000);
+        u.searchParams.set('seed', newSeed);
+        img.classList.remove('loaded');
+        img.src = u.toString();
+        reloadImgBtn.dataset.reloadImg = u.toString();
+        if (dlLink) dlLink.href = u.toString();
+        toast('Génération d\'une nouvelle variante...');
+      } catch (err) {
+        toast('Impossible de relancer l\'image.');
+      }
+    }
     return;
   }
 
