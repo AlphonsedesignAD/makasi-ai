@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Makasi AI — Extension",
+  "version": "1.0.0",
+  "description": "Accédez instantanément à Makasi AI dans votre navigateur Chrome ou Edge.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Ouvrir Makasi AI"
+  },
+  "permissions": ["storage"],
+  "host_permissions": ["https://makasi-ai.vercel.app/*"]
+}

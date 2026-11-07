@@ -855,4 +855,48 @@ $('themeBtn').onclick = () => {
   renderMessages();
   refreshSend();
   initVoiceRecognition();
+  initPwaInstall();
 })();
+
+/* ---------- PWA Installation & Service Worker ---------- */
+function initPwaInstall() {
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
+
+  let deferredPrompt = null;
+  const sideBtn = $('installAppBtn');
+  const topBtn = $('topInstallBtn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (sideBtn) sideBtn.hidden = false;
+    if (topBtn) topBtn.hidden = false;
+  });
+
+  async function promptInstall() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        toast('Application installée avec succès !');
+      }
+      deferredPrompt = null;
+      if (sideBtn) sideBtn.hidden = true;
+      if (topBtn) topBtn.hidden = true;
+    } else {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIOS) {
+        alert('Pour installer Makasi AI sur iPhone/iPad :\n\n1. Appuyez sur le bouton Partager ⎋ dans Safari.\n2. Sélectionnez "Sur l\'écran d\'accueil" ➕.');
+      } else {
+        toast('Utilisez l\'option "Installer" ou "Ajouter à l\'écran d\'accueil" de votre navigateur.');
+      }
+    }
+  }
+
+  if (sideBtn) sideBtn.addEventListener('click', promptInstall);
+  if (topBtn) topBtn.addEventListener('click', promptInstall);
+}

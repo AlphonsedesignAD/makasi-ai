@@ -6,6 +6,11 @@
 <title>Makasi AI</title>
 <meta name="description" content="Makasi AI — Assistant intelligent, rapide et simple.">
 <meta name="theme-color" content="#131314">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Makasi AI">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234285f4'/%3E%3Cstop offset='50%25' stop-color='%239b72cb'/%3E%3Cstop offset='100%25' stop-color='%23d96570'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='192' height='192' rx='48' fill='url(%23g)'/%3E%3Cpath d='M48 138V54l48 54 48-54v84' fill='none' stroke='white' stroke-width='19.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234285f4'/%3E%3Cstop offset='1' stop-color='%239b72cb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='10' fill='url(%23g)'/%3E%3Cpath d='M8 23V9l8 9 8-9v14' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,9 +61,12 @@
     <label class="search-box"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="search" type="search" placeholder="Rechercher" aria-label="Rechercher" autocomplete="off"></label>
     <nav class="history" id="history" aria-label="Historique"></nav>
     <div class="side-bottom">
-      <a class="credit" href="https://wa.me/243971404824" target="_blank" rel="noopener noreferrer">Alphonse Design</a>
-      <button class="icon-btn" id="themeBtn" aria-label="Changer de thème"><span id="themeIcon"></span></button>
-      <button class="icon-btn" id="clearAll" aria-label="Effacer l’historique"><svg class="ic"><use href="#i-trash"/></svg></button>
+      <button class="install-pwa-btn" id="installAppBtn" title="Installer Makasi AI sur votre téléphone ou PC" aria-label="Installer l'application"><svg class="ic"><use href="#i-download"/></svg><span>Installer l’app</span></button>
+      <div class="side-bottom-row">
+        <a class="credit" href="https://wa.me/243971404824" target="_blank" rel="noopener noreferrer">Alphonse Design</a>
+        <button class="icon-btn" id="themeBtn" aria-label="Changer de thème"><span id="themeIcon"></span></button>
+        <button class="icon-btn" id="clearAll" aria-label="Effacer l’historique"><svg class="ic"><use href="#i-trash"/></svg></button>
+      </div>
     </div>
   </aside>
   <div class="scrim" id="scrim" aria-hidden="true"></div>
@@ -70,7 +78,10 @@
         <span class="mark"><svg class="ic"><use href="#i-logo"/></svg></span>
         <h1 class="chat-title" id="chatTitle">Makasi AI</h1>
       </div>
-      <button class="icon-btn" id="exportChatBtn" title="Exporter la discussion" aria-label="Exporter"><svg class="ic"><use href="#i-export"/></svg></button>
+      <div class="topbar-right">
+        <button class="icon-btn" id="topInstallBtn" title="Installer Makasi AI sur votre appareil" aria-label="Installer l'application"><svg class="ic"><use href="#i-download"/></svg></button>
+        <button class="icon-btn" id="exportChatBtn" title="Exporter la discussion" aria-label="Exporter"><svg class="ic"><use href="#i-export"/></svg></button>
+      </div>
     </header>
 
     <section class="scroll" id="scroll">
