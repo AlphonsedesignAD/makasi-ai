@@ -678,25 +678,42 @@ a { color: inherit; text-decoration: none; }
   max-width: 512px;
   width: 100%;
 }
-.ai-generated-image img {
+.ai-generated-image .img-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #161c26;
+  overflow: hidden;
+}
+.ai-generated-image .img-frame img {
   display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 1 / 1;
+  height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
   background: linear-gradient(110deg, #161c26 8%, #202938 18%, #161c26 33%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
-.ai-generated-image img.loaded {
+.ai-generated-image .img-frame img.loaded {
   animation: none;
+}
+.ai-generated-image .img-frame.error::after {
+  content: '⚠️ Chargement de l\'image en cours... Veuillez patienter quelques secondes.';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 @keyframes shimmer {
   to { background-position: -200% 0; }
 }
 .ai-generated-image:hover img {
-  transform: scale(1.015);
+  transform: scale(1.02);
 }
 .ai-generated-image .img-overlay {
   display: flex;

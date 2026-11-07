@@ -95,14 +95,46 @@ function toast(msg) {
   toast.t = setTimeout(() => el.toast.classList.remove('show'), 2200);
 }
 
+/* ---------- Détection et Extraction des Requêtes d'Images ---------- */
+function isImageRequest(text) {
+  if (!text) return false;
+  const t = text.toLowerCase().trim();
+  return (
+    t.startsWith('/image') ||
+    t.startsWith('/img') ||
+    t.includes('génère une image') ||
+    t.includes('genere une image') ||
+    t.includes('générer une image') ||
+    t.includes('generer une image') ||
+    t.includes('crée une image') ||
+    t.includes('cree une image') ||
+    t.includes('créer une image') ||
+    t.includes('creer une image') ||
+    t.includes('dessine-moi') ||
+    t.includes('dessine moi') ||
+    t.includes('dessine une image') ||
+    t.includes('fais-moi une image') ||
+    t.includes('fais une image') ||
+    t.includes('generate an image') ||
+    t.includes('draw an image')
+  );
+}
+
+function extractImagePrompt(text) {
+  let clean = text
+    .replace(/^(\/image|\/img)\s*/i, '')
+    .replace(/(?:peux-tu\s+|veuillez\s+)?(?:me\s+)?(?:g[ée]n[èe]re[rz]?|cr[ée]e[rz]?|dessine[rz]?(?:-moi|\s+moi)?|fais(?:-moi|\s+moi)?|produis)\s+(?:une\s+)?image\s+(?:de\s+|d'|sur\s+|repr[ée]sentant\s+)?/i, '')
+    .trim();
+  return clean || text;
+}
+
 /* ---------- Markdown léger & soigné ---------- */
-const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function inline(s) {
   return s.split(/(`[^`\n]+`)/g).map((part, i) => {
     if (i % 2) return '<code>' + part.slice(1, -1) + '</code>';
     return part
-      .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, '<div class="ai-generated-image"><img src="$2" alt="$1" loading="lazy" onload="this.classList.add(\'loaded\')"/><div class="img-overlay"><span class="img-caption">$1</span><a href="$2" target="_blank" rel="noopener noreferrer" download="makasi-image.jpg" class="img-btn-download">🔍 Voir en grand</a></div></div>')
       .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
       .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
       .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
@@ -110,22 +142,63 @@ function inline(s) {
 }
 
 function md(text) {
+  if (!text) return '';
+
+  // 1. Extraire les blocs de code d'abord
   const blocks = [];
-  let s = esc(text).replace(/```([\w+-]*)\n?([\s\S]*?)(```|$)/g, (_, lang, code) => {
+  let s = text.replace(/```([\w+-]*)\n?([\s\S]*?)(```|$)/g, (_, lang, code) => {
     blocks.push({ lang, code: code.replace(/\n$/, '') });
-    return '\n\x00' + (blocks.length - 1) + '\x00\n';
+    return `\n\x00${blocks.length - 1}\x00\n`;
   });
 
-  const out = []; let list = null, para = [];
-  const flushP = () => { if (para.length) { out.push('<p>' + inline(para.join('<br>')) + '</p>'); para = []; } };
-  const flushL = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  // 2. Extraire les blocs d'images Markdown ![alt](url)
+  const imgBlocks = [];
+  s = s.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, (_, alt, url) => {
+    imgBlocks.push({ alt: alt.trim(), url: url.trim() });
+    return `\n\x01${imgBlocks.length - 1}\x01\n`;
+  });
+
+  // 3. Échapper le reste en toute sécurité
+  s = esc(s);
+
+  const out = [];
+  let list = null;
+  let para = [];
+
+  const flushP = () => {
+    if (para.length) {
+      out.push('<p>' + inline(para.join('<br>')) + '</p>');
+      para = [];
+    }
+  };
+  const flushL = () => {
+    if (list) {
+      out.push(`</${list}>`);
+      list = null;
+    }
+  };
 
   for (const line of s.split('\n')) {
     let m;
     if ((m = line.match(/^\x00(\d+)\x00$/))) {
       flushP(); flushL();
       const b = blocks[+m[1]];
-      out.push(`<div class="codeblock"><div class="codehead"><span>${b.lang || 'code'}</span><button data-copy>Copier</button></div><pre><code>${b.code}</code></pre></div>`);
+      out.push(`<div class="codeblock"><div class="codehead"><span>${esc(b.lang || 'code')}</span><button data-copy>Copier</button></div><pre><code>${esc(b.code)}</code></pre></div>`);
+    } else if ((m = line.match(/^\x01(\d+)\x01$/))) {
+      flushP(); flushL();
+      const img = imgBlocks[+m[1]];
+      const caption = img.alt || 'Image générée par Makasi AI';
+      out.push(`
+        <div class="ai-generated-image">
+          <div class="img-frame">
+            <img src="${img.url}" alt="${esc(caption)}" loading="lazy" onload="this.classList.add('loaded')" onerror="this.onerror=null;this.classList.add('loaded');this.parentElement.classList.add('error');" />
+          </div>
+          <div class="img-overlay">
+            <span class="img-caption">🎨 ${esc(caption)}</span>
+            <a href="${img.url}" target="_blank" rel="noopener noreferrer" class="img-btn-download">🔍 Voir en grand</a>
+          </div>
+        </div>
+      `);
     } else if ((m = line.match(/^(#{1,3})\s+(.*)/))) {
       flushP(); flushL(); out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);
     } else if ((m = line.match(/^\s*[-*•]\s+(.*)/))) {
@@ -134,8 +207,12 @@ function md(text) {
       flushP(); if (list !== 'ol') { flushL(); out.push('<ol>'); list = 'ol'; } out.push('<li>' + inline(m[1]) + '</li>');
     } else if ((m = line.match(/^&gt;\s?(.*)/))) {
       flushP(); flushL(); out.push('<blockquote>' + inline(m[1]) + '</blockquote>');
-    } else if (!line.trim()) { flushP(); flushL(); }
-    else { flushL(); para.push(line); }
+    } else if (!line.trim()) {
+      flushP(); flushL();
+    } else {
+      flushL();
+      para.push(line);
+    }
   }
   flushP(); flushL();
   return out.join('');
@@ -439,6 +516,19 @@ function refreshSend() {
 async function ask(c) {
   setBusy(true);
 
+  // Vérifie si le message demande de générer une image
+  const lastUserMsg = c.messages[c.messages.length - 1];
+  const lastText = lastUserMsg ? (lastUserMsg.displayText || lastUserMsg.content || '') : '';
+  const isImg = isImageRequest(lastText);
+  let autoImageMarkdown = '';
+
+  if (isImg) {
+    const promptClean = extractImagePrompt(lastText);
+    const seed = Math.floor(Math.random() * 8999999 + 1000000);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptClean)}?width=1024&height=1024&nologo=true&seed=${seed}`;
+    autoImageMarkdown = `![${promptClean}](${imageUrl})\n\n`;
+  }
+
   const holder = document.createElement('div');
   holder.className = 'msg bot';
   holder.innerHTML = `
@@ -448,7 +538,7 @@ async function ask(c) {
       </svg>
     </div>
     <div class="content-wrap">
-      <div class="body"><span class="typing"><i></i><i></i><i></i></span></div>
+      <div class="body">${autoImageMarkdown ? md(autoImageMarkdown) : '<span class="typing"><i></i><i></i><i></i></span>'}</div>
     </div>
   `;
   el.messages.appendChild(holder);
@@ -460,7 +550,6 @@ async function ask(c) {
 
   try {
     const history = c.messages.filter((m) => !m.error).slice(-CONFIG.MAX_HISTORY).map((m) => {
-      // Construction des parts pour Gemini (support texte et images inline)
       if (m.parts) return { role: m.role, parts: m.parts };
       return { role: m.role, parts: [{ text: m.content || '' }] };
     });
@@ -496,22 +585,31 @@ async function ask(c) {
           const token = parseChunk(JSON.parse(raw));
           if (token) {
             fullText += token;
-            bodyEl.innerHTML = md(fullText);
+            const toDisplay = (fullText.includes('![') ? '' : autoImageMarkdown) + fullText;
+            bodyEl.innerHTML = md(toDisplay);
             scrollDown();
           }
         } catch { /* chunk partiel ignoré */ }
       }
     }
 
-    if (!fullText) throw new Error('Réponse vide.');
-    c.messages.push({ role: 'assistant', content: fullText.trim(), parts: [{ text: fullText.trim() }] });
+    if (!fullText && !autoImageMarkdown) throw new Error('Réponse vide.');
+    
+    const finalContent = ((fullText.includes('![') || !autoImageMarkdown) ? '' : autoImageMarkdown) + fullText;
+    c.messages.push({ role: 'assistant', content: finalContent.trim(), parts: [{ text: finalContent.trim() }] });
 
   } catch (e) {
     if (e.name === 'AbortError') {
       c.messages.push({ role: 'assistant', content: '_Génération interrompue._', error: false });
     } else {
       console.error('[Makasi]', e);
-      c.messages.push({ role: 'assistant', content: 'Désolé, je n\'ai pas pu répondre (' + e.message + '). Vérifiez votre connexion.', error: true });
+      // Si une image a été préparée, on l'affiche quand même au lieu de bloquer l'utilisateur
+      if (autoImageMarkdown) {
+        c.messages.push({ role: 'assistant', content: autoImageMarkdown.trim(), parts: [{ text: autoImageMarkdown.trim() }] });
+        bodyEl.innerHTML = md(autoImageMarkdown);
+      } else {
+        c.messages.push({ role: 'assistant', content: 'Désolé, je n\'ai pas pu répondre (' + e.message + '). Vérifiez votre connexion.', error: true });
+      }
     }
   }
 
