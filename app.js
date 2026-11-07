@@ -17,7 +17,16 @@ RÈGLES DE CONVERSATION :
    - ou un contact / devis professionnel,
    ALORS présente Alphonse Design avec fierté et donne son contact : WhatsApp / Téléphone : 0971404824 (https://wa.me/243971404824).
 4. Lorsque l'utilisateur joint un fichier ou du code, analyse-le attentivement, résume-le ou réponds précisément aux instructions demandées sur ce document.
-5. Adapte-toi toujours à la langue de l'utilisateur (français, lingala, swahili, anglais...).`,
+
+GÉNÉRATION D'IMAGES :
+5. Lorsque l'utilisateur te demande de générer, créer ou dessiner une image (ex: "génère une image de...", "dessine...", "crée une image...", "fais-moi une image...", "montre-moi une image..."):
+   - Traduis et enrichis la demande en un prompt visuel artistique détaillé en anglais (qualité photo 8k, éclairage cinématographique, style demandé).
+   - Affiche directement l'image dans ta réponse en utilisant OBLIGATOIREMENT ce format Markdown :
+     ![Description de l'image](https://image.pollinations.ai/prompt/VOTRE_PROMPT_EN_ANGLAIS_ENCODE?width=1024&height=1024&nologo=true)
+     (Veille à bien remplacer les espaces par %20 dans l'URL).
+   - Accompagne l'image d'un court message en français pour expliquer ce qui a été généré.
+
+6. Adapte-toi toujours à la langue de l'utilisateur (français, lingala, swahili, anglais...).`,
   MAX_HISTORY: 20
 };
 
@@ -93,6 +102,7 @@ function inline(s) {
   return s.split(/(`[^`\n]+`)/g).map((part, i) => {
     if (i % 2) return '<code>' + part.slice(1, -1) + '</code>';
     return part
+      .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, '<div class="ai-generated-image"><img src="$2" alt="$1" loading="lazy" onload="this.classList.add(\'loaded\')"/><div class="img-overlay"><span class="img-caption">$1</span><a href="$2" target="_blank" rel="noopener noreferrer" download="makasi-image.jpg" class="img-btn-download">🔍 Voir en grand</a></div></div>')
       .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
       .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
       .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
@@ -732,6 +742,7 @@ $('themeBtn').onclick = () => {
   el.greeting.textContent = h < 5 ? 'Bonne nuit !' : h < 18 ? 'Bonjour !' : 'Bonsoir !';
 
   const suggestions = [
+    { title: '🎨 Générer une image IA', prompt: 'Génère une image ultra détaillée et cinématique d\'un lion majestueux avec une couronne dorée dans une ville futuriste néon.' },
     { title: '📝 Corriger ou améliorer un texte', prompt: 'Corrige et améliore la structure et l\'orthographe de ce texte :' },
     { title: '💻 Déboguer ou écrire du code', prompt: 'Aide-moi à écrire une fonction en JavaScript pour :' },
     { title: '💡 Trouver des idées innovantes', prompt: 'Donne-moi 5 idées créatives de projets web pour débuter cette année.' },
