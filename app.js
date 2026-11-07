@@ -18,15 +18,8 @@ RÈGLES DE CONVERSATION :
    ALORS présente Alphonse Design avec fierté et donne son contact : WhatsApp / Téléphone : 0971404824 (https://wa.me/243971404824).
 4. Lorsque l'utilisateur joint un fichier ou du code, analyse-le attentivement, résume-le ou réponds précisément aux instructions demandées sur ce document.
 
-GÉNÉRATION D'IMAGES :
-5. Lorsque l'utilisateur te demande de générer, créer ou dessiner une image (ex: "génère une image de...", "dessine...", "crée une image...", "fais-moi une image...", "montre-moi une image..."):
-   - Traduis et enrichis la demande en un prompt visuel artistique détaillé en anglais (qualité photo 8k, éclairage cinématographique, style demandé).
-   - Affiche directement l'image dans ta réponse en utilisant OBLIGATOIREMENT ce format Markdown :
-     ![Description de l'image](https://image.pollinations.ai/prompt/VOTRE_PROMPT_EN_ANGLAIS_ENCODE?width=1024&height=1024&nologo=true)
-     (Veille à bien remplacer les espaces par %20 dans l'URL).
-   - Accompagne l'image d'un court message en français pour expliquer ce qui a été généré.
-
-6. Adapte-toi toujours à la langue de l'utilisateur (français, lingala, swahili, anglais...).`,
+5. Adapte-toi toujours à la langue de l'utilisateur (français, lingala, swahili, anglais...).`,
+  IMAGE_URL: '/api/image',
   MAX_HISTORY: 20
 };
 
@@ -53,6 +46,8 @@ function parseChunk(data) {
    Éléments DOM & État
    ============================================================ */
 const $ = (id) => document.getElementById(id);
+const ic = (n) => `<svg class="ic"><use href="#i-${n}"/></svg>`;
+const rnd = () => Math.floor(Math.random() * 9e6) + 1e6;
 const el = {
   app: $('app'), history: $('history'), search: $('search'), scroll: $('scroll'),
   messages: $('messages'), input: $('input'), form: $('form'), send: $('send'), stop: $('stop'),
@@ -97,35 +92,16 @@ function toast(msg) {
 
 /* ---------- Détection et Extraction des Requêtes d'Images ---------- */
 function isImageRequest(text) {
-  if (!text) return false;
-  const t = text.toLowerCase().trim();
-  return (
-    t.startsWith('/image') ||
-    t.startsWith('/img') ||
-    t.includes('génère une image') ||
-    t.includes('genere une image') ||
-    t.includes('générer une image') ||
-    t.includes('generer une image') ||
-    t.includes('crée une image') ||
-    t.includes('cree une image') ||
-    t.includes('créer une image') ||
-    t.includes('creer une image') ||
-    t.includes('dessine-moi') ||
-    t.includes('dessine moi') ||
-    t.includes('dessine une image') ||
-    t.includes('fais-moi une image') ||
-    t.includes('fais une image') ||
-    t.includes('generate an image') ||
-    t.includes('draw an image')
-  );
+  const t = (text || '').toLowerCase().trim();
+  if (/^\/(image|img)\b/.test(t)) return true;
+  if (/docker|conteneur|container|\biso\b|code\b|python|javascript/.test(t)) return false;
+  return /\b(g[ée]n[èe]re[rz]?|cr[ée]+[rz]?|dessine[rz]?|fais|produis|generate|draw|create|make)\b[^.!?\n]{0,25}\b(image|photo|illustration|dessin|picture)\b/.test(t);
 }
 
 function extractImagePrompt(text) {
-  let clean = text
-    .replace(/^(\/image|\/img)\s*/i, '')
-    .replace(/(?:peux-tu\s+|veuillez\s+)?(?:me\s+)?(?:g[ée]n[èe]re[rz]?|cr[ée]e[rz]?|dessine[rz]?(?:-moi|\s+moi)?|fais(?:-moi|\s+moi)?|produis)\s+(?:une\s+)?image\s+(?:de\s+|d'|sur\s+|repr[ée]sentant\s+)?/i, '')
-    .trim();
-  return clean || text;
+  const c = text.replace(/^\/(image|img)\s*/i, '')
+    .replace(/^.*?\b(image|photo|illustration|dessin|picture)s?\b\s*(?:de |d'|du |des |sur |of |:)?\s*/i, '').trim();
+  return c || text;
 }
 
 /* ---------- Markdown léger & soigné ---------- */
@@ -187,21 +163,7 @@ function md(text) {
     } else if ((m = line.match(/^\x01(\d+)\x01$/))) {
       flushP(); flushL();
       const img = imgBlocks[+m[1]];
-      const caption = img.alt || 'Image générée par Makasi AI';
-      out.push(`
-        <div class="ai-generated-image">
-          <div class="img-frame">
-            <img src="${img.url}" alt="${esc(caption)}" loading="lazy" onload="this.classList.add('loaded')" onerror="this.onerror=null;this.classList.add('loaded');this.parentElement.classList.add('error');" />
-          </div>
-          <div class="img-overlay">
-            <span class="img-caption">🎨 ${esc(caption)}</span>
-            <div class="img-actions-right">
-              <button type="button" class="img-btn-action" data-reload-img="${esc(img.url)}" title="Générer une nouvelle variante de cette image">🔄 Relancer</button>
-              <a href="${img.url}" target="_blank" rel="noopener noreferrer" class="img-btn-download">🔍 Plein écran</a>
-            </div>
-          </div>
-        </div>
-      `);
+      out.push(`<img class="mdimg" src="${esc(img.url)}" alt="${esc(img.alt)}" loading="lazy">`);
     } else if ((m = line.match(/^(#{1,3})\s+(.*)/))) {
       flushP(); flushL(); out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);
     } else if ((m = line.match(/^\s*[-*•]\s+(.*)/))) {
@@ -232,7 +194,7 @@ function toggleSpeech(text, btn) {
     window.speechSynthesis.cancel();
     document.querySelectorAll('[data-act="speak"]').forEach(b => {
       b.classList.remove('tts-speaking');
-      b.innerHTML = '🔊 Écouter';
+      b.innerHTML = ic('speaker');
     });
     if (btn && currentUtterance && currentUtterance.__btn === btn) {
       currentUtterance = null;
@@ -257,21 +219,64 @@ function toggleSpeech(text, btn) {
   if (frVoice) utter.voice = frVoice;
 
   btn.classList.add('tts-speaking');
-  btn.innerHTML = '⏹ Arrêter';
+  btn.innerHTML = ic('stop');
 
   utter.onend = () => {
     btn.classList.remove('tts-speaking');
-    btn.innerHTML = '🔊 Écouter';
+    btn.innerHTML = ic('speaker');
     currentUtterance = null;
   };
   utter.onerror = () => {
     btn.classList.remove('tts-speaking');
-    btn.innerHTML = '🔊 Écouter';
+    btn.innerHTML = ic('speaker');
     currentUtterance = null;
   };
 
   currentUtterance = utter;
   window.speechSynthesis.speak(utter);
+}
+
+/* ---------- Images générées ---------- */
+const imgCache = new Map();
+function fetchImage(prompt, seed, onTry) {
+  const key = prompt + '|' + seed;
+  if (imgCache.has(key)) return imgCache.get(key);
+  const p = (async () => {
+    for (let i = 0; i < 4; i++) {
+      if (onTry) onTry(i);
+      try {
+        const r = await fetch(`${CONFIG.IMAGE_URL}?prompt=${encodeURIComponent(prompt)}&seed=${seed}`);
+        const b = r.ok ? await r.blob() : null;
+        if (b && b.type.startsWith('image/')) return URL.createObjectURL(b);
+      } catch (_) {}
+      await new Promise((res) => setTimeout(res, 6000));
+    }
+    throw new Error('image');
+  })();
+  imgCache.set(key, p);
+  p.catch(() => imgCache.delete(key));
+  return p;
+}
+
+function imageCard(img) {
+  return `<figure class="imgcard" data-state="loading" data-prompt="${esc(img.prompt)}" data-seed="${img.seed}">
+    <div class="imgframe"><img alt="${esc(img.prompt)}">
+      <div class="imgph"><span>Création de l’image…</span></div>
+      <div class="imgerr"><span>L’image n’a pas pu être créée.</span><button type="button" data-img="regen">${ic('refresh')} Réessayer</button></div>
+    </div>
+    <figcaption><span class="cap">${esc(img.prompt)}</span>
+      <button type="button" class="icon-btn sm" data-img="regen" title="Nouvelle variante" aria-label="Nouvelle variante">${ic('refresh')}</button>
+      <a class="icon-btn sm" data-img="dl" download="makasi-image.jpg" title="Télécharger" aria-label="Télécharger">${ic('download')}</a>
+    </figcaption></figure>`;
+}
+
+function hydrate(card) {
+  const { prompt, seed } = card.dataset, st = card.querySelector('.imgph span');
+  card.dataset.state = 'loading';
+  st.textContent = 'Création de l’image…';
+  fetchImage(prompt, seed, (i) => { if (i) st.textContent = `Service occupé, nouvel essai (${i + 1}/4)…`; })
+    .then((u) => { card.querySelector('img').src = u; card.querySelector('[data-img="dl"]').href = u; card.dataset.state = 'ready'; })
+    .catch(() => { card.dataset.state = 'error'; });
 }
 
 /* ---------- Rendu des Messages ---------- */
@@ -283,27 +288,22 @@ function msgNode(m, idx) {
   if (m.role === 'user') {
     let fileBadgeHtml = '';
     if (m.attachment) {
-      fileBadgeHtml = `<div class="attached-file-badge">📎 ${esc(m.attachment.name)}</div>`;
+      fileBadgeHtml = `<div class="attached-file-badge">${ic('clip')} ${esc(m.attachment.name)}</div>`;
     }
     d.innerHTML = `<div class="body">${fileBadgeHtml}<div class="user-text"></div></div>`;
     d.querySelector('.user-text').textContent = m.displayText || m.content || '';
   } else {
     d.innerHTML = `
-      <div class="avatar">
-        <svg viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 23V9l8 9 8-9v14"/>
-        </svg>
-      </div>
+      <div class="avatar">${ic('logo')}</div>
       <div class="content-wrap">
         <div class="body"></div>
-        <div class="actions">
-          <button data-act="copy" title="Copier le texte">📋 Copier</button>
-          <button data-act="speak" title="Écouter la réponse">🔊 Écouter</button>
-          <button data-act="retry" title="Régénérer">🔄 Relancer</button>
-        </div>
-      </div>
-    `;
-    d.querySelector('.body').innerHTML = md(m.content || '');
+        ${m.image ? '' : `<div class="actions">
+          <button data-act="copy" title="Copier" aria-label="Copier">${ic('copy')}</button>
+          <button data-act="speak" title="Écouter" aria-label="Écouter">${ic('speaker')}</button>
+          <button data-act="retry" title="Régénérer" aria-label="Régénérer">${ic('refresh')}</button>
+        </div>`}
+      </div>`;
+    d.querySelector('.body').innerHTML = (m.image ? imageCard(m.image) : '') + md(m.content || '');
   }
   return d;
 }
@@ -315,6 +315,7 @@ function renderMessages() {
   el.title.textContent = c && c.title ? c.title : 'Makasi AI';
   document.title = c && c.title ? c.title + ' · Makasi AI' : 'Makasi AI';
   if (c) c.messages.forEach((m, i) => el.messages.appendChild(msgNode(m, i)));
+  el.messages.querySelectorAll('.imgcard[data-state="loading"]').forEach(hydrate);
   scrollDown(false);
 }
 
@@ -348,7 +349,7 @@ function renderHistory() {
     b.forEach((c) => {
       const it = document.createElement('div');
       it.className = 'item' + (c.id === activeId ? ' active' : '');
-      it.innerHTML = '<button class="t"></button><button class="x" aria-label="Supprimer" title="Supprimer">✕</button>';
+      it.innerHTML = '<button class="t"></button><button class="x" aria-label="Supprimer" title="Supprimer">' + ic('x') + '</button>';
       it.querySelector('.t').textContent = c.title || 'Nouvelle discussion';
       it.querySelector('.t').onclick = () => { openChat(c.id); closeSide(); };
       it.querySelector('.x').onclick = (e) => { e.stopPropagation(); removeChat(c.id); };
@@ -404,7 +405,7 @@ function exportCurrentChat() {
   }
   let mdContent = `# ${c.title || 'Discussion Makasi AI'}\n\n`;
   c.messages.forEach(m => {
-    mdContent += `### ${m.role === 'user' ? '👤 Utilisateur' : '🤖 Makasi AI'}\n\n${m.displayText || m.content}\n\n---\n\n`;
+    mdContent += `### ${m.role === 'user' ? 'Vous' : 'Makasi AI'}\n\n${m.displayText || m.content}\n\n---\n\n`;
   });
 
   const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8' });
@@ -425,11 +426,10 @@ function formatFileSize(bytes) {
 }
 
 function getFileIcon(name, type) {
-  if (type.startsWith('image/')) return '🖼️';
-  if (name.endsWith('.pdf')) return '📕';
-  if (name.match(/\.(js|ts|py|html|css|json|sql|php|cpp|c|java)$/i)) return '💻';
-  if (name.endsWith('.csv') || name.endsWith('.xlsx')) return '📊';
-  return '📄';
+  if (type.startsWith('image/')) return 'image';
+  if (/\.(js|ts|py|html|css|json|sql|php|cpp|c|java)$/i.test(name)) return 'code';
+  if (/\.(csv|xlsx)$/i.test(name)) return 'table';
+  return 'file';
 }
 
 async function handleFileSelect(file) {
@@ -481,7 +481,7 @@ async function handleFileSelect(file) {
     // Affichage dans la barre de prévisualisation
     el.fileName.textContent = currentAttachedFile.name;
     el.fileSize.textContent = currentAttachedFile.size;
-    el.fileIcon.textContent = getFileIcon(file.name, file.type);
+    el.fileIcon.innerHTML = ic(getFileIcon(file.name, file.type));
     el.filePreviewBar.hidden = false;
     refreshSend();
     el.input.focus();
@@ -517,33 +517,21 @@ function refreshSend() {
 }
 
 async function ask(c) {
-  setBusy(true);
+  const last = c.messages[c.messages.length - 1];
+  const lastText = last ? (last.displayText || last.content || '') : '';
 
-  // Vérifie si le message demande de générer une image
-  const lastUserMsg = c.messages[c.messages.length - 1];
-  const lastText = lastUserMsg ? (lastUserMsg.displayText || lastUserMsg.content || '') : '';
-  const isImg = isImageRequest(lastText);
-  let autoImageMarkdown = '';
-
-  if (isImg) {
-    const promptClean = extractImagePrompt(lastText);
-    const seed = Math.floor(Math.random() * 8999999 + 1000000);
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptClean)}?model=turbo&width=1024&height=1024&nologo=true&seed=${seed}`;
-    autoImageMarkdown = `![${promptClean}](${imageUrl})\n\n`;
+  // Demande d'image : génération dédiée, sans passer par le chat texte
+  if (last && !last.attachment && isImageRequest(lastText)) {
+    c.messages.push({ role: 'assistant', content: '', image: { prompt: extractImagePrompt(lastText), seed: rnd() } });
+    c.updated = Date.now();
+    save(); renderMessages(); renderHistory(); scrollDown();
+    return;
   }
 
+  setBusy(true);
   const holder = document.createElement('div');
   holder.className = 'msg bot';
-  holder.innerHTML = `
-    <div class="avatar">
-      <svg viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 23V9l8 9 8-9v14"/>
-      </svg>
-    </div>
-    <div class="content-wrap">
-      <div class="body">${autoImageMarkdown ? md(autoImageMarkdown) : '<span class="typing"><i></i><i></i><i></i></span>'}</div>
-    </div>
-  `;
+  holder.innerHTML = `<div class="avatar">${ic('logo')}</div><div class="content-wrap"><div class="body"><span class="typing"><i></i><i></i><i></i></span></div></div>`;
   el.messages.appendChild(holder);
   scrollDown();
   const bodyEl = holder.querySelector('.body');
@@ -552,10 +540,8 @@ async function ask(c) {
   let fullText = '';
 
   try {
-    const history = c.messages.filter((m) => !m.error).slice(-CONFIG.MAX_HISTORY).map((m) => {
-      if (m.parts) return { role: m.role, parts: m.parts };
-      return { role: m.role, parts: [{ text: m.content || '' }] };
-    });
+    const history = c.messages.filter((m) => !m.error && !m.image).slice(-CONFIG.MAX_HISTORY)
+      .map((m) => ({ role: m.role, parts: m.parts || [{ text: m.content || '' }] }));
 
     const { headers, body } = buildRequest(history);
     const res = await fetch(CONFIG.API_URL, { method: 'POST', headers, body, signal: controller.signal });
@@ -588,31 +574,22 @@ async function ask(c) {
           const token = parseChunk(JSON.parse(raw));
           if (token) {
             fullText += token;
-            const toDisplay = (fullText.includes('![') ? '' : autoImageMarkdown) + fullText;
-            bodyEl.innerHTML = md(toDisplay);
+            bodyEl.innerHTML = md(fullText);
             scrollDown();
           }
         } catch { /* chunk partiel ignoré */ }
       }
     }
 
-    if (!fullText && !autoImageMarkdown) throw new Error('Réponse vide.');
-    
-    const finalContent = ((fullText.includes('![') || !autoImageMarkdown) ? '' : autoImageMarkdown) + fullText;
-    c.messages.push({ role: 'assistant', content: finalContent.trim(), parts: [{ text: finalContent.trim() }] });
+    if (!fullText) throw new Error('Réponse vide.');
+    c.messages.push({ role: 'assistant', content: fullText.trim(), parts: [{ text: fullText.trim() }] });
 
   } catch (e) {
     if (e.name === 'AbortError') {
       c.messages.push({ role: 'assistant', content: '_Génération interrompue._', error: false });
     } else {
       console.error('[Makasi]', e);
-      // Si une image a été préparée, on l'affiche quand même au lieu de bloquer l'utilisateur
-      if (autoImageMarkdown) {
-        c.messages.push({ role: 'assistant', content: autoImageMarkdown.trim(), parts: [{ text: autoImageMarkdown.trim() }] });
-        bodyEl.innerHTML = md(autoImageMarkdown);
-      } else {
-        c.messages.push({ role: 'assistant', content: 'Désolé, je n\'ai pas pu répondre (' + e.message + '). Vérifiez votre connexion.', error: true });
-      }
+      c.messages.push({ role: 'assistant', content: 'Désolé, je n\'ai pas pu répondre (' + e.message + '). Vérifiez votre connexion.', error: true });
     }
   }
 
@@ -798,25 +775,14 @@ el.messages.addEventListener('click', async (e) => {
     return;
   }
 
-  // Relancer une image avec une nouvelle seed
-  const reloadImgBtn = e.target.closest('[data-reload-img]');
-  if (reloadImgBtn) {
-    const card = reloadImgBtn.closest('.ai-generated-image');
-    if (card) {
-      const img = card.querySelector('img');
-      const dlLink = card.querySelector('.img-btn-download');
-      try {
-        const u = new URL(reloadImgBtn.dataset.reloadImg);
-        const newSeed = Math.floor(Math.random() * 8999999 + 1000000);
-        u.searchParams.set('seed', newSeed);
-        img.classList.remove('loaded');
-        img.src = u.toString();
-        reloadImgBtn.dataset.reloadImg = u.toString();
-        if (dlLink) dlLink.href = u.toString();
-        toast('Génération d\'une nouvelle variante...');
-      } catch (err) {
-        toast('Impossible de relancer l\'image.');
-      }
+  const imgBtn = e.target.closest('[data-img]');
+  if (imgBtn) {
+    const card = imgBtn.closest('.imgcard');
+    if (card && imgBtn.dataset.img === 'regen') {
+      const c = active(), m = c && c.messages[+card.closest('.msg')?.dataset.idx];
+      card.dataset.seed = rnd();
+      if (m && m.image) { m.image.seed = +card.dataset.seed; save(); }
+      hydrate(card);
     }
     return;
   }
@@ -849,14 +815,13 @@ $('scrim').onclick = closeSide;
 /* Thème */
 function applyTheme(t) {
   if (t) document.documentElement.dataset.theme = t;
-  const dark = (document.documentElement.dataset.theme || 'dark') === 'dark';
-  $('themeIcon').textContent = dark ? '🌙' : '☀️';
-  $('themeLabel').textContent = dark ? 'Sombre' : 'Clair';
+  const dark = document.documentElement.dataset.theme !== 'light';
+  $('themeIcon').innerHTML = ic(dark ? 'sun' : 'moon');
+  document.querySelector('meta[name="theme-color"]').content = dark ? '#131314' : '#ffffff';
 }
 $('themeBtn').onclick = () => {
-  const current = document.documentElement.dataset.theme || 'dark';
-  const next = current === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('makasi.theme', next);
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  try { localStorage.setItem('makasi.theme', next); } catch (e) {}
   applyTheme(next);
 };
 
@@ -866,31 +831,26 @@ $('themeBtn').onclick = () => {
   el.greeting.textContent = h < 5 ? 'Bonne nuit !' : h < 18 ? 'Bonjour !' : 'Bonsoir !';
 
   const suggestions = [
-    { title: '🎨 Générer une image IA', prompt: 'Génère une image ultra détaillée et cinématique d\'un lion majestueux avec une couronne dorée dans une ville futuriste néon.' },
-    { title: '📝 Corriger ou améliorer un texte', prompt: 'Corrige et améliore la structure et l\'orthographe de ce texte :' },
-    { title: '💻 Déboguer ou écrire du code', prompt: 'Aide-moi à écrire une fonction en JavaScript pour :' },
-    { title: '💡 Trouver des idées innovantes', prompt: 'Donne-moi 5 idées créatives de projets web pour débuter cette année.' },
-    { title: '📊 Résumer un document ou fichier', prompt: 'Résume de manière claire et concise les points clés suivants :' }
+    { icon: 'image', title: 'Créer une image', prompt: 'Génère une image de ' },
+    { icon: 'pen', title: 'Écrire ou corriger un texte', prompt: 'Corrige et améliore ce texte : ' },
+    { icon: 'code', title: 'Écrire ou déboguer du code', prompt: 'Aide-moi à écrire une fonction JavaScript qui ' },
+    { icon: 'bulb', title: 'Trouver des idées', prompt: 'Donne-moi 5 idées originales de projets web.' }
   ];
 
   el.chips.innerHTML = '';
-  suggestions.forEach(({ title, prompt }) => {
+  suggestions.forEach(({ icon, title, prompt }, i) => {
     const b = document.createElement('button');
     b.className = 'chip';
-    b.textContent = title;
-    b.onclick = () => {
-      el.input.value = prompt + ' ';
-      autosize();
-      refreshSend();
-      el.input.focus();
-    };
+    b.style.animationDelay = 0.08 * i + 's';
+    b.innerHTML = `<span>${title}</span>${ic(icon)}`;
+    b.onclick = () => { el.input.value = prompt; autosize(); refreshSend(); el.input.focus(); };
     el.chips.appendChild(b);
   });
 
   chats = chats.filter((c) => c && Array.isArray(c.messages));
   if (!chats.find((c) => c.id === activeId)) activeId = null;
 
-  applyTheme(localStorage.getItem('makasi.theme') || 'dark');
+  applyTheme();
   renderHistory();
   renderMessages();
   refreshSend();

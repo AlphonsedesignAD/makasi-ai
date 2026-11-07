@@ -7,7 +7,8 @@ Un assistant conversationnel intelligent propulsé par l'API Gemini, doté d'une
 ```text
 makasi-ai/
 ├── api/
-│   └── chat.js        # Fonction Serverless Vercel (sécurise la clé secrète)
+│   ├── chat.js        # Chat texte (Gemini, streaming)
+│   └── image.js       # Génération d'images (serveur, avec repli et cache)
 ├── index.html         # Interface utilisateur
 ├── style.css          # Design soigné & responsive avec animations
 ├── app.js             # Logique frontend (SSE streaming)
@@ -28,3 +29,11 @@ makasi-ai/
 
 Votre site sera en ligne et votre clé d'API restera 100% sécurisée côté serveur, invisible pour les visiteurs et absente de GitHub !
 
+
+## Images
+
+Tapez par exemple « génère une image de … » ou `/image …`. La génération passe par `/api/image` (plus fiable que l'appel direct depuis le navigateur). Facultatif : ajoutez `POLLINATIONS_API_KEY` (clé gratuite sur enter.pollinations.ai) pour éviter la limite des requêtes anonymes.
+
+## Test en local
+
+`vercel dev` dans le dossier (les deux fonctions `/api/chat` et `/api/image` ont besoin du serveur Vercel et du fichier `.env`).
