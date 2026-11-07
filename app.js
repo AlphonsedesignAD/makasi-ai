@@ -1,37 +1,32 @@
 /* ============================================================
-   MAKASI AI — Application Frontend
-   Créé par Alphonse Design (WhatsApp : 0971404824)
+   MAKASI AI — Logique Frontend & Traitement Multimodal
+   Créé avec Alphonse Design (WhatsApp : 0971404824)
    ============================================================ */
 
 const CONFIG = {
   API_URL: '/api/chat',
   SYSTEM_PROMPT: `Tu es Makasi AI, un assistant d'élite intelligent, créatif, percutant et très chaleureux.
-Tu as été pensé, conçu et développé avec passion par ALPHONSE DESIGN, designer créatif, développeur web et expert en solutions digitales et intelligence artificielle.
+Tu as été conçu et développé par ALPHONSE DESIGN, designer et développeur web expert.
 
-TES DIRECTIVES IMPORTANTES SUR TON CRÉATEUR & SES SERVICES :
-1. Ton créateur et mentor est ALPHONSE DESIGN.
-2. Coordonnées directes officielles :
-   - WhatsApp / Téléphone : 0971404824 (format international : +243971404824)
-   - Lien WhatsApp direct : https://wa.me/243971404824
-3. Domaines d'expertise d'Alphonse Design :
-   - Création de sites web professionnels, vitrines & e-commerce ultra-rapides et responsive.
-   - Design d'identités visuelles complètes : logos distinctifs, chartes graphiques, affiches, cartes de visite et branding de marque.
-   - Conception d'assistants IA sur mesure, chatbots et intégrations modernes.
-   - Stratégies digitales et visuels publicitaires pour booster les ventes des entreprises et créateurs.
-4. Si l'utilisateur demande des informations sur toi, sur tes services, demande un devis, ou a un projet créatif/technique :
-   - Présente avec enthousiasme et professionnalisme la valeur ajoutée d'Alphonse Design.
-   - Donne systématiquement le contact WhatsApp 0971404824 avec le lien cliquable : [Écrire à Alphonse Design sur WhatsApp](https://wa.me/243971404824?text=Bonjour%20Alphonse%20Design,%20je%20souhaite%20un%20devis%20pour%20un%20projet).
-5. Pour toutes les requêtes (programmation, rédaction, entrepreneuriat, études, astuces, créativité), sois exceptionnellement précis, bienveillant, structuré avec des puces et des émojis pertinents.
-6. Réponds avec fluidité dans la langue de l'utilisateur (français, lingala, swahili, anglais...).`,
+RÈGLES DE CONVERSATION :
+1. Réponds de façon précise, naturelle, directe et structurée à TOUTES les questions des utilisateurs (code, explications, rédaction, devoirs, analyse de fichiers joints, conseils).
+2. N'ajoute PAS de lien WhatsApp inutilement à chaque réponse ! Réponds simplement et efficacement à ce qui est demandé.
+3. UNIQUEMENT si l'utilisateur te demande :
+   - qui t'a créé ou qui est ton développeur,
+   - des services de création de site web, logo, design graphique ou IA sur mesure,
+   - ou un contact / devis professionnel,
+   ALORS présente Alphonse Design avec fierté et donne son contact : WhatsApp / Téléphone : 0971404824 (https://wa.me/243971404824).
+4. Lorsque l'utilisateur joint un fichier ou du code, analyse-le attentivement, résume-le ou réponds précisément aux instructions demandées sur ce document.
+5. Adapte-toi toujours à la langue de l'utilisateur (français, lingala, swahili, anglais...).`,
   MAX_HISTORY: 20
 };
 
 /* Format de la requête envoyé à /api/chat */
 function buildRequest(messages) {
   const headers = { 'Content-Type': 'application/json' };
-  const contents = messages.map(({ role, content }) => ({
+  const contents = messages.map(({ role, parts }) => ({
     role: role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: content }]
+    parts: Array.isArray(parts) ? parts : [{ text: parts || '' }]
   }));
   const body = {
     system_instruction: { parts: [{ text: CONFIG.SYSTEM_PROMPT }] },
@@ -54,7 +49,9 @@ const el = {
   messages: $('messages'), input: $('input'), form: $('form'), send: $('send'), stop: $('stop'),
   title: $('chatTitle'), greeting: $('greeting'), chips: $('chips'), toast: $('toast'),
   micBtn: $('micBtn'), voiceBar: $('voiceBar'), voiceText: $('voiceText'), cancelVoice: $('cancelVoice'),
-  exportChatBtn: $('exportChatBtn')
+  exportChatBtn: $('exportChatBtn'), attachBtn: $('attachBtn'), fileInput: $('fileInput'),
+  filePreviewBar: $('filePreviewBar'), fileName: $('fileName'), fileSize: $('fileSize'),
+  fileIcon: $('fileIcon'), removeFileBtn: $('removeFileBtn')
 };
 
 const KEY = 'makasi.chats', KEY_ACTIVE = 'makasi.active';
@@ -66,13 +63,16 @@ let currentUtterance = null;
 let recognition = null;
 let isRecording = false;
 
+// Fichier actuellement attaché en attente d'envoi
+let currentAttachedFile = null;
+
 function load(k, fb) { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } }
 function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify(chats));
     localStorage.setItem(KEY_ACTIVE, activeId || '');
   } catch {
-    toast('Stockage plein : supprimez d’anciennes conversations.');
+    toast('Stockage plein : supprimez d’anciennes discussions.');
   }
 }
 
@@ -83,17 +83,8 @@ function toast(msg) {
   el.toast.textContent = msg;
   el.toast.classList.add('show');
   clearTimeout(toast.t);
-  toast.t = setTimeout(() => el.toast.classList.remove('show'), 2400);
+  toast.t = setTimeout(() => el.toast.classList.remove('show'), 2200);
 }
-
-/* ---------- Fonction globale pour les puces rapides ---------- */
-window.sendPrompt = function(promptText) {
-  if (busy) return;
-  el.input.value = promptText;
-  autosize();
-  refreshSend();
-  send(promptText);
-};
 
 /* ---------- Markdown léger & soigné ---------- */
 const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -143,7 +134,7 @@ function md(text) {
 /* ---------- Synthèse Vocale (Text-to-Speech) ---------- */
 function toggleSpeech(text, btn) {
   if (!('speechSynthesis' in window)) {
-    toast('Synthèse vocale non supportée sur ce navigateur.');
+    toast('Audio non supporté sur ce navigateur.');
     return;
   }
 
@@ -159,7 +150,6 @@ function toggleSpeech(text, btn) {
     }
   }
 
-  // Nettoyage Markdown pour lecture fluide
   const cleanText = text
     .replace(/```[\s\S]*?```/g, 'Bloc de code.')
     .replace(/[#*_`[\]()]/g, ' ')
@@ -201,28 +191,29 @@ function msgNode(m, idx) {
   d.dataset.idx = idx;
 
   if (m.role === 'user') {
-    d.innerHTML = '<div class="body"></div>';
-    d.querySelector('.body').textContent = m.content;
+    let fileBadgeHtml = '';
+    if (m.attachment) {
+      fileBadgeHtml = `<div class="attached-file-badge">📎 ${esc(m.attachment.name)}</div>`;
+    }
+    d.innerHTML = `<div class="body">${fileBadgeHtml}<div class="user-text"></div></div>`;
+    d.querySelector('.user-text').textContent = m.displayText || m.content || '';
   } else {
     d.innerHTML = `
       <div class="avatar">
-        <svg viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
           <path d="M8 23V9l8 9 8-9v14"/>
         </svg>
       </div>
       <div class="content-wrap">
         <div class="body"></div>
         <div class="actions">
-          <button data-act="copy" title="Copier la réponse">📋 Copier</button>
-          <button data-act="speak" title="Écouter la réponse vocalement">🔊 Écouter</button>
-          <button data-act="retry" title="Régénérer cette réponse">🔄 Relancer</button>
-          <a href="https://wa.me/243971404824?text=Bonjour%20Alphonse%20Design,%20suite%20%C3%A0%20mon%20%C3%A9change%20avec%20Makasi%20AI,%20je%20souhaite%20un%20devis." target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-sm);background:rgba(37,211,102,0.12);color:#2fd36b;font-size:12px;font-weight:700;border:1px solid rgba(37,211,102,0.3)">
-            💬 WhatsApp
-          </a>
+          <button data-act="copy" title="Copier le texte">📋 Copier</button>
+          <button data-act="speak" title="Écouter la réponse">🔊 Écouter</button>
+          <button data-act="retry" title="Régénérer">🔄 Relancer</button>
         </div>
       </div>
     `;
-    d.querySelector('.body').innerHTML = md(m.content);
+    d.querySelector('.body').innerHTML = md(m.content || '');
   }
   return d;
 }
@@ -232,18 +223,18 @@ function renderMessages() {
   el.messages.innerHTML = '';
   el.app.classList.toggle('has-msgs', !!(c && c.messages.length));
   el.title.textContent = c && c.title ? c.title : 'Makasi AI';
-  document.title = c && c.title ? c.title + ' · Makasi AI' : 'Makasi AI — Par Alphonse Design';
+  document.title = c && c.title ? c.title + ' · Makasi AI' : 'Makasi AI';
   if (c) c.messages.forEach((m, i) => el.messages.appendChild(msgNode(m, i)));
   scrollDown(false);
 }
 
 function renderHistory() {
   const q = el.search.value.trim().toLowerCase();
-  const list = chats.filter((c) => !q || (c.title || '').toLowerCase().includes(q) || c.messages.some((m) => m.content.toLowerCase().includes(q)))
+  const list = chats.filter((c) => !q || (c.title || '').toLowerCase().includes(q) || c.messages.some((m) => (m.content || '').toLowerCase().includes(q)))
     .sort((a, b) => b.updated - a.updated);
   el.history.innerHTML = '';
   if (!list.length) {
-    el.history.innerHTML = '<div class="empty-hist">' + (q ? 'Aucun résultat trouvé.' : 'Vos discussions apparaîtront ici.') + '</div>';
+    el.history.innerHTML = '<div class="empty-hist">' + (q ? 'Aucun résultat.' : 'Historique vide.') + '</div>';
     return;
   }
 
@@ -267,7 +258,7 @@ function renderHistory() {
     b.forEach((c) => {
       const it = document.createElement('div');
       it.className = 'item' + (c.id === activeId ? ' active' : '');
-      it.innerHTML = '<button class="t"></button><button class="x" aria-label="Supprimer la discussion" title="Supprimer">✕</button>';
+      it.innerHTML = '<button class="t"></button><button class="x" aria-label="Supprimer" title="Supprimer">✕</button>';
       it.querySelector('.t').textContent = c.title || 'Nouvelle discussion';
       it.querySelector('.t').onclick = () => { openChat(c.id); closeSide(); };
       it.querySelector('.x').onclick = (e) => { e.stopPropagation(); removeChat(c.id); };
@@ -289,6 +280,7 @@ function newChat() {
   const n = { id: uid(), title: '', messages: [], updated: Date.now() };
   chats.push(n);
   activeId = n.id;
+  clearAttachment();
   save();
   renderHistory();
   renderMessages();
@@ -298,6 +290,7 @@ function newChat() {
 function openChat(id) {
   if (busy) return;
   activeId = id;
+  clearAttachment();
   save();
   renderHistory();
   renderMessages();
@@ -319,19 +312,103 @@ function exportCurrentChat() {
     toast('Aucun message à exporter.');
     return;
   }
-  let mdContent = `# ${c.title || 'Discussion Makasi AI'}\n*Créé avec Makasi AI — par Alphonse Design (WhatsApp : 0971404824)*\n\n---\n\n`;
+  let mdContent = `# ${c.title || 'Discussion Makasi AI'}\n\n`;
   c.messages.forEach(m => {
-    mdContent += `### ${m.role === 'user' ? '👤 Vous' : '🤖 Makasi AI'}\n\n${m.content}\n\n---\n\n`;
+    mdContent += `### ${m.role === 'user' ? '👤 Utilisateur' : '🤖 Makasi AI'}\n\n${m.displayText || m.content}\n\n---\n\n`;
   });
 
   const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `makasi-ai-${c.title ? c.title.slice(0, 20).replace(/\s+/g, '_') : 'chat'}.md`;
+  a.download = `makasi-ai-${c.title ? c.title.slice(0, 20).replace(/\s+/g, '_') : 'discussion'}.md`;
   a.click();
   URL.revokeObjectURL(url);
-  toast('Discussion exportée avec succès !');
+  toast('Discussion exportée !');
+}
+
+/* ---------- Gestion des Fichiers Joints ---------- */
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function getFileIcon(name, type) {
+  if (type.startsWith('image/')) return '🖼️';
+  if (name.endsWith('.pdf')) return '📕';
+  if (name.match(/\.(js|ts|py|html|css|json|sql|php|cpp|c|java)$/i)) return '💻';
+  if (name.endsWith('.csv') || name.endsWith('.xlsx')) return '📊';
+  return '📄';
+}
+
+async function handleFileSelect(file) {
+  if (!file) return;
+
+  // Limite de taille : 10MB
+  if (file.size > 10 * 1024 * 1024) {
+    toast('Fichier trop volumineux (maximum 10 MB).');
+    return;
+  }
+
+  const isImage = file.type.startsWith('image/');
+
+  try {
+    if (isImage) {
+      // Lecture Base64 pour image
+      const base64Data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      currentAttachedFile = {
+        name: file.name,
+        size: formatFileSize(file.size),
+        type: file.type,
+        isImage: true,
+        base64: base64Data
+      };
+    } else {
+      // Lecture texte pour code / documents texte
+      const textContent = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+
+      currentAttachedFile = {
+        name: file.name,
+        size: formatFileSize(file.size),
+        type: file.type || 'text/plain',
+        isImage: false,
+        text: textContent
+      };
+    }
+
+    // Affichage dans la barre de prévisualisation
+    el.fileName.textContent = currentAttachedFile.name;
+    el.fileSize.textContent = currentAttachedFile.size;
+    el.fileIcon.textContent = getFileIcon(file.name, file.type);
+    el.filePreviewBar.hidden = false;
+    refreshSend();
+    el.input.focus();
+    toast(`Fichier "${file.name}" attaché !`);
+
+  } catch (err) {
+    console.error('Erreur lecture fichier:', err);
+    toast('Impossible de lire ce fichier.');
+    clearAttachment();
+  }
+}
+
+function clearAttachment() {
+  currentAttachedFile = null;
+  el.filePreviewBar.hidden = true;
+  el.fileInput.value = '';
+  refreshSend();
 }
 
 /* ---------- Envoi & Streaming ---------- */
@@ -344,18 +421,19 @@ function setBusy(b) {
 }
 
 function refreshSend() {
-  el.send.disabled = busy || !el.input.value.trim();
+  const hasText = !!el.input.value.trim();
+  const hasFile = !!currentAttachedFile;
+  el.send.disabled = busy || (!hasText && !hasFile);
 }
 
 async function ask(c) {
   setBusy(true);
 
-  // Bulle de réponse avec animation de chargement
   const holder = document.createElement('div');
   holder.className = 'msg bot';
   holder.innerHTML = `
     <div class="avatar">
-      <svg viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
         <path d="M8 23V9l8 9 8-9v14"/>
       </svg>
     </div>
@@ -371,7 +449,12 @@ async function ask(c) {
   let fullText = '';
 
   try {
-    const history = c.messages.filter((m) => !m.error).slice(-CONFIG.MAX_HISTORY).map(({ role, content }) => ({ role, content }));
+    const history = c.messages.filter((m) => !m.error).slice(-CONFIG.MAX_HISTORY).map((m) => {
+      // Construction des parts pour Gemini (support texte et images inline)
+      if (m.parts) return { role: m.role, parts: m.parts };
+      return { role: m.role, parts: [{ text: m.content || '' }] };
+    });
+
     const { headers, body } = buildRequest(history);
     const res = await fetch(CONFIG.API_URL, { method: 'POST', headers, body, signal: controller.signal });
 
@@ -384,7 +467,6 @@ async function ask(c) {
       throw new Error(detail);
     }
 
-    // Lecture du stream SSE
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buf = '';
@@ -407,19 +489,19 @@ async function ask(c) {
             bodyEl.innerHTML = md(fullText);
             scrollDown();
           }
-        } catch { /* chunk JSON incomplet */ }
+        } catch { /* chunk partiel ignoré */ }
       }
     }
 
-    if (!fullText) throw new Error('Réponse vide de l\'API.');
-    c.messages.push({ role: 'assistant', content: fullText.trim() });
+    if (!fullText) throw new Error('Réponse vide.');
+    c.messages.push({ role: 'assistant', content: fullText.trim(), parts: [{ text: fullText.trim() }] });
 
   } catch (e) {
     if (e.name === 'AbortError') {
       c.messages.push({ role: 'assistant', content: '_Génération interrompue._', error: false });
     } else {
       console.error('[Makasi]', e);
-      c.messages.push({ role: 'assistant', content: 'Désolé, je n\'ai pas pu répondre (' + e.message + '). Vérifiez votre connexion ou la configuration de l\'API.', error: true });
+      c.messages.push({ role: 'assistant', content: 'Désolé, je n\'ai pas pu répondre (' + e.message + '). Vérifiez votre connexion.', error: true });
     }
   }
 
@@ -434,20 +516,62 @@ async function ask(c) {
 
 function send(text) {
   text = text.trim();
-  if (!text || busy) return;
+  const attached = currentAttachedFile;
+
+  if (!text && !attached) return;
+  if (busy) return;
+
   let c = active();
   if (!c) {
     c = { id: uid(), title: '', messages: [], updated: Date.now() };
     chats.push(c);
     activeId = c.id;
   }
-  if (!c.messages.length) {
-    c.title = text.length > 44 ? text.slice(0, 44).trim() + '…' : text;
+
+  // Préparation du message utilisateur et de ses parts
+  const userParts = [];
+  let userDisplayText = text;
+
+  if (attached) {
+    if (attached.isImage) {
+      userParts.push({
+        inline_data: {
+          mime_type: attached.type,
+          data: attached.base64
+        }
+      });
+      const promptText = text || 'Analyse cette image.';
+      userParts.push({ text: promptText });
+      if (!userDisplayText) userDisplayText = 'Analyse de l\'image jointe';
+    } else {
+      // Document / Code / Texte
+      const fileHeader = `[Fichier joint : ${attached.name}]\n\`\`\`\n${attached.text}\n\`\`\`\n\n`;
+      const fullPrompt = fileHeader + (text || 'Voici un fichier. Analyse son contenu et résume-le ou aide-moi dessus.');
+      userParts.push({ text: fullPrompt });
+      if (!userDisplayText) userDisplayText = `Analyse du fichier ${attached.name}`;
+    }
+  } else {
+    userParts.push({ text: text });
   }
-  c.messages.push({ role: 'user', content: text });
+
+  if (!c.messages.length) {
+    c.title = userDisplayText.length > 36 ? userDisplayText.slice(0, 36).trim() + '…' : userDisplayText;
+  }
+
+  c.messages.push({
+    role: 'user',
+    content: text || (attached ? attached.name : ''),
+    displayText: userDisplayText,
+    parts: userParts,
+    attachment: attached ? { name: attached.name, size: attached.size } : null
+  });
+
   c.updated = Date.now();
   save();
+
+  // Reset champ et pièce jointe
   el.input.value = '';
+  clearAttachment();
   autosize();
   refreshSend();
   renderMessages();
@@ -472,7 +596,7 @@ function initVoiceRecognition() {
     isRecording = true;
     el.micBtn.classList.add('active');
     el.voiceBar.hidden = false;
-    el.voiceText.textContent = 'Parlez maintenant... Makasi AI vous écoute';
+    el.voiceText.textContent = 'Parlez... Makasi AI écoute';
   };
 
   recognition.onresult = (e) => {
@@ -483,11 +607,10 @@ function initVoiceRecognition() {
     el.voiceText.textContent = `"${transcript}"`;
   };
 
-  recognition.onerror = (e) => {
+  recognition.onerror = () => {
     isRecording = false;
     el.micBtn.classList.remove('active');
     el.voiceBar.hidden = true;
-    toast('Écoute annulée ou micro indisponible.');
   };
 
   recognition.onend = () => {
@@ -519,12 +642,12 @@ function initVoiceRecognition() {
 /* ---------- Événements ---------- */
 function autosize() {
   el.input.style.height = 'auto';
-  el.input.style.height = Math.min(el.input.scrollHeight, 180) + 'px';
+  el.input.style.height = Math.min(el.input.scrollHeight, 160) + 'px';
 }
 
 el.input.addEventListener('input', () => { autosize(); refreshSend(); });
 el.input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && innerWidth > 820) {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && innerWidth > 768) {
     e.preventDefault();
     send(el.input.value);
   }
@@ -535,20 +658,27 @@ $('newChat').onclick = () => { newChat(); closeSide(); };
 el.search.addEventListener('input', renderHistory);
 if (el.exportChatBtn) el.exportChatBtn.onclick = exportCurrentChat;
 
+// Événements Fichiers
+el.attachBtn.addEventListener('click', () => el.fileInput.click());
+el.fileInput.addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (file) handleFileSelect(file);
+});
+el.removeFileBtn.addEventListener('click', clearAttachment);
+
 $('clearAll').onclick = () => {
   if (!chats.length) return;
-  if (confirm('Voulez-vous supprimer toutes vos conversations ? Cette action est irréversible.')) {
+  if (confirm('Voulez-vous supprimer toutes vos discussions ?')) {
     chats = [];
     activeId = null;
     save();
     renderHistory();
     renderMessages();
-    toast('Toutes les conversations ont été effacées.');
+    toast('Discussions effacées.');
   }
 };
 
 el.messages.addEventListener('click', async (e) => {
-  // Copier bloc de code
   const copyCode = e.target.closest('[data-copy]');
   if (copyCode) {
     await navigator.clipboard.writeText(copyCode.closest('.codeblock').querySelector('code').textContent);
@@ -564,7 +694,7 @@ el.messages.addEventListener('click', async (e) => {
 
   if (b.dataset.act === 'copy') {
     await navigator.clipboard.writeText(c.messages[idx].content);
-    toast('Réponse copiée dans le presse-papier !');
+    toast('Réponse copiée !');
   } else if (b.dataset.act === 'speak') {
     toggleSpeech(c.messages[idx].content, b);
   } else if (b.dataset.act === 'retry') {
@@ -596,19 +726,16 @@ $('themeBtn').onclick = () => {
   applyTheme(next);
 };
 
-/* ---------- Démarrage & Suggestions Clients ---------- */
+/* ---------- Démarrage & Suggestions Normales ---------- */
 (function init() {
   const h = new Date().getHours();
   el.greeting.textContent = h < 5 ? 'Bonne nuit !' : h < 18 ? 'Bonjour !' : 'Bonsoir !';
 
-  // Suggestions orientées conversion client et productivité
   const suggestions = [
-    { title: '💼 Devis création de site web', prompt: 'Je souhaite un devis pour la création d\'un site web moderne et professionnel avec Alphonse Design.' },
-    { title: '🎨 Logo & Identité visuelle', prompt: 'Quelles sont les formules d\'Alphonse Design pour créer un logo et une identité de marque percutante ?' },
-    { title: '🤖 Assistant IA sur-mesure', prompt: 'Comment Alphonse Design peut m\'aider à concevoir une solution d\'intelligence artificielle pour mon entreprise ?' },
-    { title: '🚀 Stratégie marketing digital', prompt: 'Donne-moi 5 stratégies concrètes pour attirer plus de clients vers mon business cette semaine.' },
-    { title: '📱 Contacter sur WhatsApp', prompt: 'Comment puis-je contacter Alphonse Design directement sur WhatsApp au 0971404824 ?' },
-    { title: '💡 Améliorer mon texte de vente', prompt: 'Aide-moi à rédiger une proposition commerciale convaincante pour mes clients.' }
+    { title: '📝 Corriger ou améliorer un texte', prompt: 'Corrige et améliore la structure et l\'orthographe de ce texte :' },
+    { title: '💻 Déboguer ou écrire du code', prompt: 'Aide-moi à écrire une fonction en JavaScript pour :' },
+    { title: '💡 Trouver des idées innovantes', prompt: 'Donne-moi 5 idées créatives de projets web pour débuter cette année.' },
+    { title: '📊 Résumer un document ou fichier', prompt: 'Résume de manière claire et concise les points clés suivants :' }
   ];
 
   el.chips.innerHTML = '';
@@ -617,10 +744,10 @@ $('themeBtn').onclick = () => {
     b.className = 'chip';
     b.textContent = title;
     b.onclick = () => {
-      el.input.value = prompt;
+      el.input.value = prompt + ' ';
       autosize();
       refreshSend();
-      send(prompt);
+      el.input.focus();
     };
     el.chips.appendChild(b);
   });
