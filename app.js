@@ -104,6 +104,30 @@ function extractImagePrompt(text) {
   return c || text;
 }
 
+/* Format demandé dans la phrase (16:9, portrait, paysage…) */
+function detectImageRatio(text) {
+  const t = (text || '').toLowerCase();
+  if (/\b16\s*[:/x]\s*9\b/.test(t)) return '16:9';
+  if (/\b9\s*[:/x]\s*16\b/.test(t)) return '9:16';
+  if (/\b4\s*[:/x]\s*3\b/.test(t)) return '4:3';
+  if (/\b3\s*[:/x]\s*4\b/.test(t)) return '3:4';
+  if (/\b(carr[ée]|square|1\s*[:/x]\s*1)\b/.test(t)) return '1:1';
+  if (/\b(paysage|horizontal|landscape|banni[èe]re|banner|wide)\b/.test(t)) return '16:9';
+  if (/\b(portrait|vertical|story|stories|tiktok|r[ée]el)\b/.test(t)) return '9:16';
+  return '1:1';
+}
+
+/* Style demandé (photo, illustration, 3D, anime, logo) */
+function detectImageStyle(text) {
+  const t = (text || '').toLowerCase();
+  if (/\b(logo|ic[ôo]ne|icon|embl[èe]me)\b/.test(t)) return 'logo';
+  if (/\b(anime|manga|cartoon|dessin anim[ée])\b/.test(t)) return 'anime';
+  if (/\b(3d|rendu|render)\b/.test(t)) return '3d';
+  if (/\b(illustration|dessin|aquarelle|peinture|art|drawing|painting)\b/.test(t)) return 'illustration';
+  if (/\b(photo|photor[ée]aliste|r[ée]aliste|realistic)\b/.test(t)) return 'photo';
+  return '';
+}
+
 /* ---------- Markdown léger & soigné ---------- */
 const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -252,21 +276,40 @@ function toggleSpeech(text, btn) {
 }
 
 /* ---------- Images générées ---------- */
+const IMAGE_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4'];
 const imgCache = new Map();
-function fetchImage(prompt, seed, onTry) {
-  const key = prompt + '|' + seed;
+
+function fetchImage({ prompt, seed, ratio, style }, onStatus) {
+  const key = [prompt, seed, ratio, style].join('|');
   if (imgCache.has(key)) return imgCache.get(key);
   const p = (async () => {
-    for (let i = 0; i < 4; i++) {
-      if (onTry) onTry(i);
+    let lastErr = null;
+    for (let i = 0; i < 2; i++) {
+      if (i) {
+        if (onStatus) onStatus('Nouvel essai…');
+        await new Promise((res) => setTimeout(res, 1500));
+      }
       try {
-        const r = await fetch(`${CONFIG.IMAGE_URL}?prompt=${encodeURIComponent(prompt)}&seed=${seed}`);
-        const b = r.ok ? await r.blob() : null;
-        if (b && b.type.startsWith('image/')) return URL.createObjectURL(b);
-      } catch (_) {}
-      await new Promise((res) => setTimeout(res, 6000));
+        const r = await fetch(CONFIG.IMAGE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, seed, ratio, style }),
+        });
+        const type = (r.headers.get('content-type') || '').split(';')[0];
+        if (r.ok && type.startsWith('image/')) {
+          const b = await r.blob();
+          return { url: URL.createObjectURL(b), mime: b.type || type };
+        }
+        let msg = '';
+        try { msg = (await r.json())?.error || ''; } catch (_) {}
+        lastErr = new Error(msg || `Erreur ${r.status}`);
+        // Erreur définitive (demande invalide, sécurité…) : inutile de réessayer.
+        if (r.status < 500) break;
+      } catch (e) {
+        lastErr = e;
+      }
     }
-    throw new Error('image');
+    throw lastErr || new Error('L’image n’a pas pu être créée.');
   })();
   imgCache.set(key, p);
   p.catch(() => imgCache.delete(key));
@@ -274,24 +317,48 @@ function fetchImage(prompt, seed, onTry) {
 }
 
 function imageCard(img) {
-  return `<figure class="imgcard" data-state="loading" data-prompt="${esc(img.prompt)}" data-seed="${img.seed}">
-    <div class="imgframe"><img alt="${esc(img.prompt)}">
+  const ratio = img.ratio || '1:1';
+  const ratios = IMAGE_RATIOS.map(
+    (r) => `<button type="button" data-ratio="${r}" aria-pressed="${r === ratio}">${r}</button>`
+  ).join('');
+  return `<figure class="imgcard" data-state="loading" data-prompt="${esc(img.prompt)}" data-seed="${img.seed}" data-ratio="${ratio}" data-style="${esc(img.style || '')}">
+    <div class="imgframe" style="--ratio:${ratio.replace(':', '/')}"><img alt="${esc(img.prompt)}" loading="lazy">
       <div class="imgph"><span>Création de l’image…</span></div>
       <div class="imgerr"><span>L’image n’a pas pu être créée.</span><button type="button" data-img="regen">${ic('refresh')} Réessayer</button></div>
     </div>
-    <figcaption><span class="cap">${esc(img.prompt)}</span>
+    <figcaption>
+      <div class="imgratios" role="group" aria-label="Format de l’image">${ratios}</div>
+      <span class="cap">${esc(img.prompt)}</span>
       <button type="button" class="icon-btn sm" data-img="regen" title="Nouvelle variante" aria-label="Nouvelle variante">${ic('refresh')}</button>
-      <a class="icon-btn sm" data-img="dl" download="makasi-image.jpg" title="Télécharger" aria-label="Télécharger">${ic('download')}</a>
+      <a class="icon-btn sm" data-img="dl" download="makasi-image.png" title="Télécharger" aria-label="Télécharger">${ic('download')}</a>
     </figcaption></figure>`;
 }
 
 function hydrate(card) {
-  const { prompt, seed } = card.dataset, st = card.querySelector('.imgph span');
+  const { prompt, style } = card.dataset;
+  const seed = +card.dataset.seed;
+  const ratio = card.dataset.ratio || '1:1';
+  const st = card.querySelector('.imgph span');
+  const err = card.querySelector('.imgerr span');
   card.dataset.state = 'loading';
   st.textContent = 'Création de l’image…';
-  fetchImage(prompt, seed, (i) => { if (i) st.textContent = `Service occupé, nouvel essai (${i + 1}/4)…`; })
-    .then((u) => { card.querySelector('img').src = u; card.querySelector('[data-img="dl"]').href = u; card.dataset.state = 'ready'; })
-    .catch(() => { card.dataset.state = 'error'; });
+  const slow = setTimeout(() => {
+    if (card.dataset.state === 'loading') st.textContent = 'Encore quelques secondes…';
+  }, 9000);
+
+  fetchImage({ prompt, seed, ratio, style }, (m) => { if (m) st.textContent = m; })
+    .then(({ url, mime }) => {
+      card.querySelector('img').src = url;
+      const dl = card.querySelector('[data-img="dl"]');
+      dl.href = url;
+      dl.download = 'makasi-image.' + (/jpeg|jpg/.test(mime) ? 'jpg' : /webp/.test(mime) ? 'webp' : 'png');
+      card.dataset.state = 'ready';
+    })
+    .catch((e) => {
+      err.textContent = e?.message || 'L’image n’a pas pu être créée.';
+      card.dataset.state = 'error';
+    })
+    .finally(() => clearTimeout(slow));
 }
 
 /* ---------- Rendu des Messages ---------- */
@@ -542,7 +609,12 @@ async function ask(c) {
 
   // Demande d'image : génération dédiée, sans passer par le chat texte
   if (last && !last.attachment && isImageRequest(lastText)) {
-    c.messages.push({ role: 'assistant', content: '', image: { prompt: extractImagePrompt(lastText), seed: rnd() } });
+    const prompt = extractImagePrompt(lastText);
+    c.messages.push({
+      role: 'assistant',
+      content: '',
+      image: { prompt, seed: rnd(), ratio: detectImageRatio(lastText), style: detectImageStyle(lastText) },
+    });
     c.updated = Date.now();
     save(); renderMessages(); renderHistory(); scrollDown();
     return;
@@ -797,6 +869,22 @@ el.messages.addEventListener('click', async (e) => {
       copyCode.classList.remove('copied');
       copyCode.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg><span>Copier</span>`;
     }, 1800);
+    return;
+  }
+
+  const ratioBtn = e.target.closest('.imgratios [data-ratio]');
+  if (ratioBtn) {
+    const card = ratioBtn.closest('.imgcard');
+    const ratio = ratioBtn.dataset.ratio;
+    if (card && ratio && ratio !== card.dataset.ratio) {
+      const c = active(), m = c && c.messages[+card.closest('.msg')?.dataset.idx];
+      card.dataset.ratio = ratio;
+      card.querySelector('.imgframe').style.setProperty('--ratio', ratio.replace(':', '/'));
+      card.querySelectorAll('.imgratios [data-ratio]').forEach((b) => b.setAttribute('aria-pressed', String(b === ratioBtn)));
+      card.dataset.seed = rnd();
+      if (m && m.image) { m.image.ratio = ratio; m.image.seed = +card.dataset.seed; save(); }
+      hydrate(card);
+    }
     return;
   }
 

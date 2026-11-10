@@ -398,7 +398,7 @@ a:hover { text-decoration: underline; }
 .imgcard { width: min(380px, 100%); margin: 6px 0 8px; }
 .imgframe {
   position: relative;
-  aspect-ratio: 1;
+  aspect-ratio: var(--ratio, 1);
   border-radius: 14px;
   overflow: hidden;
   background: var(--sf);
@@ -420,7 +420,8 @@ a:hover { text-decoration: underline; }
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
 }
-.imgerr { display: none; background: var(--sf); }
+.imgerr { display: none; background: var(--sf); overflow: auto; }
+.imgerr span { max-width: 34ch; line-height: 1.45; }
 .imgcard[data-state=ready] .imgph, .imgcard[data-state=error] .imgph { display: none; }
 .imgcard[data-state=error] .imgerr { display: grid; }
 .imgerr button {
@@ -440,6 +441,17 @@ a:hover { text-decoration: underline; }
   flex: 1; min-width: 0; padding-left: 4px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.imgratios {
+  display: flex; flex: none; gap: 1px; padding: 2px;
+  border-radius: 8px; background: var(--sf);
+}
+.imgratios button {
+  padding: 3px 5px; border-radius: 6px;
+  font-size: 10px; line-height: 1; color: var(--mu);
+  white-space: nowrap;
+}
+.imgratios button[aria-pressed=true] { background: var(--sf2); color: var(--tx); }
+.imgratios button:hover { color: var(--tx); }
 .imgcard a.icon-btn { text-decoration: none; }
 
 /* ---------- Zone de saisie ---------- */

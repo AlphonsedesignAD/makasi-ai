@@ -32,7 +32,21 @@ Votre site sera en ligne et votre clé d'API restera 100% sécurisée côté ser
 
 ## Images
 
-Tapez par exemple « génère une image de … » ou `/image …`. La génération passe par `/api/image` (plus fiable que l'appel direct depuis le navigateur). Facultatif : ajoutez `POLLINATIONS_API_KEY` (clé gratuite sur enter.pollinations.ai) pour éviter la limite des requêtes anonymes.
+Tapez par exemple « génère une image de … » ou `/image …`. La génération passe par `/api/image` (plus fiable que l'appel direct depuis le navigateur).
+
+- **Formats** : `1:1`, `16:9`, `9:16`, `4:3`, `3:4`. Le format est déduit de la phrase (« en portrait », « format 16:9 », « paysage »…) et reste modifiable sous l'image.
+- **Styles** : photo, illustration, 3D, anime, logo — déduits de la phrase ou passés via `style`.
+- **Moteur** : Gemini Image (`gemini-3.1-flash-image` → `gemini-3-pro-image` → `gemini-2.5-flash-image`).
+- **Quota** : la génération d'images Gemini nécessite un projet Google AI avec facturation activée. Sans facturation, l'API renvoie `429 RESOURCE_EXHAUSTED` et l'interface affiche un message explicite.
+
+### API
+
+```http
+GET  /api/image?prompt=un%20chat&ratio=16:9&style=photo&seed=42
+POST /api/image   { "prompt": "un chat", "ratio": "16:9", "style": "photo", "seed": 42 }
+```
+
+Réponse : l'image binaire (`image/png` ou `image/jpeg`), avec les en-têtes `X-Image-Source` et `X-Image-Ratio`. En cas d'échec : JSON `{ "error": "…", "code": "quota|blocked|unavailable|invalid_request" }`.
 
 ## Test en local
 
