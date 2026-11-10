@@ -8,10 +8,12 @@ Un assistant conversationnel intelligent propulsé par l'API Gemini, doté d'une
 makasi-ai/
 ├── api/
 │   ├── chat.js        # Chat texte (Gemini, streaming)
-│   └── image.js       # Génération d'images (serveur, avec repli et cache)
+│   ├── image.js       # Génération d'images (serveur, avec repli et cache)
+│   └── documents.js   # Génération de documents Word, Excel et PDF
 ├── index.html         # Interface utilisateur
 ├── style.css          # Design soigné & responsive avec animations
 ├── app.js             # Logique frontend (SSE streaming)
+├── package.json       # Dépendances serveur (docx, exceljs, pdf-lib)
 ├── vercel.json        # Configuration de routage Vercel
 ├── .env.example       # Modèle de variable d'environnement
 └── .gitignore         # Empêche la publication des secrets (.env)
@@ -48,6 +50,44 @@ POST /api/image   { "prompt": "un chat", "ratio": "16:9", "style": "photo", "see
 
 Réponse : l'image binaire (`image/png` ou `image/jpeg`), avec les en-têtes `X-Image-Source` et `X-Image-Ratio`. En cas d'échec : JSON `{ "error": "…", "code": "quota|blocked|unavailable|invalid_request" }`.
 
+## Documents (Word, Excel, PDF)
+
+Demandez un document dans le chat, par exemple « crée un rapport Word sur … », « fais-moi un budget Excel » ou « génère une lettre de motivation PDF ». Vous pouvez aussi utiliser une commande : `/pdf …`, `/word …`, `/excel …`.
+
+L'application détecte le format, appelle `/api/documents`, puis affiche une carte avec :
+
+- le **téléchargement** du vrai fichier (`.docx`, `.xlsx`, `.pdf`) ;
+- le **changement de format** (PDF ↔ Word ↔ Excel) sans réécrire la demande ;
+- la **régénération** du document.
+
+Gemini rédige le contenu (titre, sections, paragraphes, puces, tableaux) au format JSON structuré, puis le serveur fabrique le fichier :
+
+| Format | Bibliothèque | Contenu |
+| --- | --- | --- |
+| Word `.docx` | `docx` | Titre, sous-titre, sections, listes à puces, tableaux stylés |
+| Excel `.xlsx` | `exceljs` | Feuilles multiples, en-têtes colorés, filtres, nombres typés |
+| PDF | `pdf-lib` | Mise en page A4, tableaux, pagination « Page x / y » |
+
+Les documents sont générés par `gemini-3.5-flash-lite` (repli : `gemini-3.5-flash`), avec reprise automatique et délai maximal de 60 s.
+
+### API
+
+```http
+POST /api/documents
+Content-Type: application/json
+
+{ "prompt": "rapport sur l'IA dans l'éducation", "format": "docx" }
+```
+
+`format` vaut `docx`, `xlsx` ou `pdf` (par défaut `pdf`). En cas de succès, la réponse est le fichier binaire avec `Content-Disposition`, `X-Document-Title` et `X-Document-Format`. En cas d'échec : JSON `{ "error": "…", "code": "quota|format|upstream|unavailable|invalid_request" }`.
+
+> La génération de documents utilise le quota Gemini texte (aucune facturation n'est nécessaire en principe). Si le quota gratuit est momentanément épuisé, l'interface affiche un message clair et permet de réessayer.
+
 ## Test en local
 
-`vercel dev` dans le dossier (les deux fonctions `/api/chat` et `/api/image` ont besoin du serveur Vercel et du fichier `.env`).
+```bash
+npm install
+vercel dev
+```
+
+`vercel dev` sert le site et les trois fonctions (`/api/chat`, `/api/image`, `/api/documents`) avec le fichier `.env`.

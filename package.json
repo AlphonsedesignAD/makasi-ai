@@ -1,0 +1,12 @@
+{
+  "name": "makasi-ai",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Makasi AI — assistant Gemini avec génération de documents Word, Excel et PDF",
+  "dependencies": {
+    "docx": "^9.5.1",
+    "exceljs": "^4.4.0",
+    "pdf-lib": "^1.17.1"
+  }
+}

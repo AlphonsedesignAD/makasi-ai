@@ -12,7 +12,6 @@
 
 # Node / dépendances
 node_modules/
-package-lock.json
 
 # Builds & caches
 dist/
