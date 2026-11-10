@@ -1,7 +1,7 @@
 // api/chat.js — Vercel Serverless Function (proxy Gemini)
 // La clé API est dans les variables d'env Vercel, jamais dans le code.
 
-export const config = { runtime: 'edge' }; // Edge Runtime pour le streaming
+export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
@@ -23,14 +23,21 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ error: 'API key not configured' }), { status: 500 });
   }
 
-  const body = await req.text();
-  const model = 'gemini-flash-lite-latest';
+  const body = await req.json();
+
+  // Injecter maxOutputTokens pour avoir des réponses complètes
+  body.generationConfig = {
+    ...(body.generationConfig || {}),
+    maxOutputTokens: 16384,
+  };
+
+  const model = 'gemini-3.5-flash';
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
   const geminiRes = await fetch(geminiUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body,
+    body: JSON.stringify(body),
   });
 
   // Retransmet le stream SSE directement au navigateur
@@ -43,4 +50,3 @@ export default async function handler(req) {
     },
   });
 }
-
