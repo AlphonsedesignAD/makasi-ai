@@ -68,7 +68,7 @@ Gemini rédige le contenu (titre, sections, paragraphes, puces, tableaux) au for
 | Excel `.xlsx` | `exceljs` | Feuilles multiples, en-têtes colorés, filtres, nombres typés |
 | PDF | `pdf-lib` | Mise en page A4, tableaux, pagination « Page x / y » |
 
-Les documents sont générés par `gemini-3.5-flash-lite` (repli : `gemini-3.5-flash`), avec reprise automatique et délai maximal de 60 s.
+Les documents sont générés par `gemini-3.5-flash-lite` en priorité, avec bascule automatique vers `gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-3.1-flash-lite` puis `gemini-3.5-flash` si un modèle est saturé ou à court de quota. Reprise automatique et délai maximal de 60 s.
 
 ### API
 
@@ -82,6 +82,17 @@ Content-Type: application/json
 `format` vaut `docx`, `xlsx` ou `pdf` (par défaut `pdf`). En cas de succès, la réponse est le fichier binaire avec `Content-Disposition`, `X-Document-Title` et `X-Document-Format`. En cas d'échec : JSON `{ "error": "…", "code": "quota|format|upstream|unavailable|invalid_request" }`.
 
 > La génération de documents utilise le quota Gemini texte (aucune facturation n'est nécessaire en principe). Si le quota gratuit est momentanément épuisé, l'interface affiche un message clair et permet de réessayer.
+
+## Quotas Gemini
+
+Le quota gratuit Gemini est **journalier et par modèle**. Makasi AI en tient compte :
+
+- le chat et les documents **basculent automatiquement** vers un autre modèle quand le modèle courant est épuisé (liste : `gemini-3.5-flash-lite`, `gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.5-flash`) ;
+- un modèle en quota atteint est mis de côté pendant quelques heures pour ne pas gaspiller d'appels ;
+- si **tous** les modèles sont épuisés, l'interface affiche un message lisible avec le délai avant nouvel essai — jamais le JSON brut de Google ;
+- pour multiplier le quota, ajoutez des clés de secours `GEMINI_API_KEY_2` et `GEMINI_API_KEY_3` (autres projets Google AI). Elles sont utilisées automatiquement.
+
+La génération d'**images** reste soumise à la facturation Google AI (quota gratuit à 0).
 
 ## Test en local
 

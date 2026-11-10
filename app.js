@@ -798,12 +798,14 @@ async function ask(c) {
     const res = await fetch(CONFIG.API_URL, { method: 'POST', headers, body, signal: controller.signal });
 
     if (!res.ok) {
-      let detail = 'Erreur ' + res.status;
+      let friendly = '';
       try {
         const errJson = await res.json();
-        if (errJson?.error) detail += ': ' + (typeof errJson.error === 'string' ? errJson.error : JSON.stringify(errJson.error));
+        friendly = typeof errJson?.error === 'string' ? errJson.error : errJson?.error?.message || '';
       } catch (_) {}
-      throw new Error(detail);
+      const err = new Error(friendly || `Le service Gemini est indisponible (erreur ${res.status}).`);
+      err.friendly = true;
+      throw err;
     }
 
     const reader = res.body.getReader();
@@ -840,7 +842,10 @@ async function ask(c) {
       c.messages.push({ role: 'assistant', content: '_Génération interrompue._', error: false });
     } else {
       console.error('[Makasi]', e);
-      c.messages.push({ role: 'assistant', content: 'Désolé, je n\'ai pas pu répondre (' + e.message + '). Vérifiez votre connexion.', error: true });
+      const message = e.friendly
+        ? e.message
+        : 'Désolé, je n’ai pas pu répondre. Vérifiez votre connexion puis réessayez.';
+      c.messages.push({ role: 'assistant', content: message, error: true });
     }
   }
 

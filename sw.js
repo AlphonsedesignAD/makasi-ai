@@ -1,5 +1,5 @@
 // sw.js — Service Worker pour Makasi AI (PWA installable)
-const CACHE_NAME = 'makasi-v1';
+const CACHE_NAME = 'makasi-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

@@ -13,8 +13,13 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 export const config = { maxDuration: 60 };
 
-const MODEL = 'gemini-3.5-flash-lite';
-const FALLBACK_MODEL = 'gemini-3.5-flash';
+const MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+];
 const MAX_PROMPT = 2000;
 const MAX_SECTIONS = 14;
 const MAX_PARAGRAPHS = 14;
@@ -164,6 +169,15 @@ function slug(value) {
   return s || 'document';
 }
 
+function humanDelay(seconds) {
+  const s = Number(seconds) || 0;
+  if (s < 60) return 'quelques instants';
+  const h = Math.floor(s / 3600);
+  const m = Math.round((s % 3600) / 60);
+  if (h >= 1) return `${h} h${m ? ` ${m} min` : ''}`;
+  return `${m} min`;
+}
+
 /* ---------- Appel Gemini ---------- */
 
 async function callGemini(model, prompt, format, key, timeoutMs = 45000) {
@@ -198,10 +212,13 @@ async function callGemini(model, prompt, format, key, timeoutMs = 45000) {
     const text = await res.text().catch(() => '');
     let detail = text.slice(0, 300);
     let status = res.status;
+    let retryAfter = 0;
     try {
       const err = JSON.parse(text)?.error;
       detail = err?.message || detail;
       status = err?.status === 'RESOURCE_EXHAUSTED' ? 429 : status;
+      const retry = (err?.details || []).find((d) => String(d?.['@type'] || '').includes('RetryInfo'));
+      if (retry?.retryDelay) retryAfter = parseInt(retry.retryDelay, 10) || 0;
     } catch (_) {
       /* réponse non JSON */
     }
@@ -209,6 +226,7 @@ async function callGemini(model, prompt, format, key, timeoutMs = 45000) {
     throw Object.assign(new Error(detail), {
       code,
       status: code === 'quota' ? 429 : status === 503 ? 503 : 502,
+      retryAfter,
     });
   }
 
@@ -230,24 +248,26 @@ async function callGemini(model, prompt, format, key, timeoutMs = 45000) {
   return isSheet ? normalizeSheetModel(parsed) : normalizeTextModel(parsed);
 }
 
-async function generateModel(prompt, format, key) {
+async function generateModel(prompt, format, keys) {
   let lastError = null;
   const deadline = Date.now() + 52000;
 
-  for (const model of [MODEL, FALLBACK_MODEL]) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const remaining = deadline - Date.now();
-      if (remaining < 5000) break;
-      try {
-        return await callGemini(model, prompt, format, key, Math.min(remaining, 45000));
-      } catch (e) {
-        lastError = e;
-        // Contenu inexploitable : on arrête.
-        if (e.code === 'format') throw e;
-        // Quota atteint sur ce modèle : on passe au modèle suivant.
-        if (e.code === 'quota') break;
-        if (deadline - Date.now() < 3000) break;
-        await new Promise((r) => setTimeout(r, 1200));
+  for (const key of keys) {
+    for (const model of MODELS) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const remaining = deadline - Date.now();
+        if (remaining < 5000) break;
+        try {
+          return await callGemini(model, prompt, format, key, Math.min(remaining, 45000));
+        } catch (e) {
+          lastError = e;
+          // Contenu inexploitable : on arrête.
+          if (e.code === 'format') throw e;
+          // Quota atteint sur ce modèle : on passe au modèle suivant.
+          if (e.code === 'quota') break;
+          if (deadline - Date.now() < 3000) break;
+          await new Promise((r) => setTimeout(r, 1200));
+        }
       }
     }
   }
@@ -787,13 +807,13 @@ export default async function handler(req, res) {
   }
 
   const format = ['docx', 'xlsx', 'pdf'].includes(body.format) ? body.format : 'pdf';
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const keys = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_2, process.env.GEMINI_API_KEY_3].filter(Boolean);
+  if (!keys.length) {
     return json(res, 500, { error: 'Clé Gemini non configurée.', code: 'unavailable' });
   }
 
   try {
-    const model = await generateModel(prompt, format, apiKey);
+    const model = await generateModel(prompt, format, keys);
     const buffer =
       format === 'xlsx'
         ? await buildXlsx(model)
@@ -819,7 +839,9 @@ export default async function handler(req, res) {
     const status = e?.status && e.status >= 400 ? e.status : 500;
     const messages = {
       quota:
-        "Le quota Gemini est épuisé. Activez la facturation sur votre projet Google AI puis réessayez.",
+        "Le quota gratuit Gemini est atteint pour aujourd'hui. " +
+        (e?.retryAfter ? `Réessayez dans ${humanDelay(e.retryAfter)} ` : 'Réessayez plus tard ') +
+        'ou activez la facturation sur votre projet Google AI.',
       format: "Le contenu n'a pas pu être structuré. Reformulez la demande.",
       upstream: 'Le service Gemini est momentanément indisponible. Réessayez.',
       unavailable: "Le document n'a pas pu être créé. Réessayez.",
