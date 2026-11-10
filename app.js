@@ -20,7 +20,6 @@ RÈGLES DE CONVERSATION :
 
 5. Adapte-toi toujours à la langue de l'utilisateur (français, lingala, swahili, anglais...).`,
   IMAGE_URL: '/api/image',
-  DOC_URL: '/api/documents',
   MAX_HISTORY: 20
 };
 
@@ -127,41 +126,6 @@ function detectImageStyle(text) {
   if (/\b(illustration|dessin|aquarelle|peinture|art|drawing|painting)\b/.test(t)) return 'illustration';
   if (/\b(photo|photor[ée]aliste|r[ée]aliste|realistic)\b/.test(t)) return 'photo';
   return '';
-}
-
-/* ---------- Détection des Demandes de Documents ---------- */
-const DOC_NOUNS = /\b(document|rapport|dossier|m[ée]moire|cv|curriculum|lettre|facture|devis|contrat|budget|inventaire|planning|programme|attestation|re[çc]u|compte[- ]rendu|business[- ]plan|plan d.affaires|pr[ée]sentation)\b/;
-const DOC_VERBS = /\b(g[ée]n[èe]re[rz]?|cr[ée]+[rz]?|fais|fais[- ]moi|produis|exporte[rz]?|r[ée]dige[rz]?|pr[ée]pare[rz]?|donne[- ]moi|[ée]cris)\b/;
-
-function detectDocFormat(text) {
-  const t = (text || '').toLowerCase().trim();
-  const cmd = t.match(/^\/(word|docx|pdf|excel|xlsx)\b/);
-  if (cmd) return cmd[1] === 'word' || cmd[1] === 'docx' ? 'docx' : cmd[1] === 'excel' || cmd[1] === 'xlsx' ? 'xlsx' : 'pdf';
-
-  const explicit = t.match(/\b(excel|xlsx|tableur|feuille de calcul|word|docx|pdf)\b/);
-  const wantsDoc = DOC_VERBS.test(t) || DOC_NOUNS.test(t);
-  if (explicit && wantsDoc) {
-    const f = explicit[1];
-    return f === 'excel' || f === 'xlsx' || f === 'tableur' || f === 'feuille de calcul'
-      ? 'xlsx'
-      : f === 'word' || f === 'docx'
-        ? 'docx'
-        : 'pdf';
-  }
-
-  if (DOC_VERBS.test(t) && /\bdocument\b/.test(t)) return 'pdf';
-  return null;
-}
-
-function extractDocPrompt(text) {
-  const c = text
-    .replace(/^\/(word|docx|pdf|excel|xlsx)\s*/i, '')
-    .replace(/\b(en|au format|format|fichier|document)\s+(word|docx|pdf|excel|xlsx|tableur)\b/gi, '')
-    .replace(/\b(word|docx|pdf|excel|xlsx|tableur)\b/gi, '')
-    .replace(/\s{2,}/g, ' ')
-    .replace(/^[\s,;:.-]+/, '')
-    .trim();
-  return c || text;
 }
 
 /* ---------- Markdown léger & soigné ---------- */
@@ -397,109 +361,6 @@ function hydrate(card) {
     .finally(() => clearTimeout(slow));
 }
 
-/* ---------- Documents générés (Word, Excel, PDF) ---------- */
-const DOC_LABELS = { docx: 'Word', xlsx: 'Excel', pdf: 'PDF' };
-const DOC_EXT = { docx: 'docx', xlsx: 'xlsx', pdf: 'pdf' };
-const docCache = new Map();
-
-function generateDoc({ prompt, format, id }, onStatus) {
-  const key = [prompt, format, id].join('|');
-  if (docCache.has(key)) return docCache.get(key);
-  const p = (async () => {
-    let lastErr = null;
-    for (let i = 0; i < 2; i++) {
-      if (i) {
-        if (onStatus) onStatus('Nouvel essai…');
-        await new Promise((res) => setTimeout(res, 1500));
-      }
-      try {
-        const r = await fetch(CONFIG.DOC_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, format }),
-        });
-        if (r.ok) {
-          const b = await r.blob();
-          const cd = r.headers.get('content-disposition') || '';
-          const m = cd.match(/filename\*=UTF-8''([^;]+)/i);
-          const filename = m ? decodeURIComponent(m[1]) : `makasi-document.${DOC_EXT[format] || 'pdf'}`;
-          let title = '';
-          const rawTitle = r.headers.get('x-document-title');
-          if (rawTitle) {
-            try { title = decodeURIComponent(rawTitle); } catch (_) {}
-          }
-          return { url: URL.createObjectURL(b), filename, title };
-        }
-        let msg = '';
-        try { msg = (await r.json())?.error || ''; } catch (_) {}
-        lastErr = new Error(msg || `Erreur ${r.status}`);
-        if (r.status < 500) break;
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-    throw lastErr || new Error('Le document n’a pas pu être créé.');
-  })();
-  docCache.set(key, p);
-  p.catch(() => docCache.delete(key));
-  return p;
-}
-
-function docCard(doc) {
-  const format = doc.format || 'pdf';
-  const chips = ['pdf', 'docx', 'xlsx']
-    .map((f) => `<button type="button" data-docformat="${f}" aria-pressed="${f === format}">${DOC_LABELS[f]}</button>`)
-    .join('');
-  return `<figure class="doccard" data-state="loading" data-prompt="${esc(doc.prompt)}" data-format="${format}" data-id="${esc(doc.id)}">
-    <div class="docmain">
-      <span class="docicon">${ic('file')}</span>
-      <div class="docmeta">
-        <strong class="doctitle">Document ${DOC_LABELS[format] || 'PDF'}</strong>
-        <span class="docstatus">Préparation du document…</span>
-      </div>
-      <a class="icon-btn sm docdl" data-doc="dl" download title="Télécharger" aria-label="Télécharger" hidden>${ic('download')}</a>
-    </div>
-    <div class="docfoot">
-      <div class="docformats" role="group" aria-label="Format du document">${chips}</div>
-      <button type="button" class="icon-btn sm" data-doc="regen" title="Régénérer" aria-label="Régénérer">${ic('refresh')}</button>
-    </div>
-    <div class="docerr" hidden></div>
-  </figure>`;
-}
-
-function hydrateDoc(card) {
-  const prompt = card.dataset.prompt;
-  const format = card.dataset.format;
-  const id = card.dataset.id;
-  const status = card.querySelector('.docstatus');
-  const titleEl = card.querySelector('.doctitle');
-  const err = card.querySelector('.docerr');
-  const dl = card.querySelector('[data-doc="dl"]');
-
-  card.dataset.state = 'loading';
-  err.hidden = true;
-  err.textContent = '';
-  dl.hidden = true;
-  titleEl.textContent = `Document ${DOC_LABELS[format] || 'PDF'}`;
-  status.textContent = 'Préparation du document…';
-
-  generateDoc({ prompt, format, id }, (m) => { if (m) status.textContent = m; })
-    .then(({ url, filename, title }) => {
-      card.dataset.state = 'ready';
-      status.textContent = filename;
-      if (title) titleEl.textContent = title;
-      dl.href = url;
-      dl.download = filename;
-      dl.hidden = false;
-    })
-    .catch((e) => {
-      card.dataset.state = 'error';
-      status.textContent = 'Échec de la génération.';
-      err.hidden = false;
-      err.textContent = e?.message || 'Le document n’a pas pu être créé.';
-    });
-}
-
 /* ---------- Rendu des Messages ---------- */
 function msgNode(m, idx) {
   const d = document.createElement('div');
@@ -518,7 +379,7 @@ function msgNode(m, idx) {
       <div class="avatar">${ic('logo')}</div>
       <div class="content-wrap">
         <div class="body"></div>
-        ${m.image || m.doc ? '' : `<div class="actions">
+        ${m.image ? '' : `<div class="actions">
           <button data-act="copy" title="Copier" aria-label="Copier">${ic('copy')}</button>
           <button data-act="speak" title="Écouter" aria-label="Écouter">${ic('speaker')}</button>
           <button data-act="retry" title="Régénérer" aria-label="Régénérer">${ic('refresh')}</button>
@@ -526,7 +387,6 @@ function msgNode(m, idx) {
       </div>`;
     d.querySelector('.body').innerHTML =
       (m.image ? imageCard(m.image) : '') +
-      (m.doc ? docCard(m.doc) : '') +
       md(m.content || '');
   }
   return d;
@@ -540,7 +400,6 @@ function renderMessages() {
   document.title = c && c.title ? c.title + ' · Makasi AI' : 'Makasi AI';
   if (c) c.messages.forEach((m, i) => el.messages.appendChild(msgNode(m, i)));
   el.messages.querySelectorAll('.imgcard[data-state="loading"]').forEach(hydrate);
-  el.messages.querySelectorAll('.doccard[data-state="loading"]').forEach(hydrateDoc);
   scrollDown(false);
 }
 
@@ -632,7 +491,6 @@ function exportCurrentChat() {
   c.messages.forEach(m => {
     let body = m.displayText || m.content;
     if (m.image) body = `[Image générée : ${m.image.prompt}]`;
-    if (m.doc) body = `[Document ${DOC_LABELS[m.doc.format] || 'PDF'} : ${m.doc.prompt}]`;
     mdContent += `### ${m.role === 'user' ? 'Vous' : 'Makasi AI'}\n\n${body}\n\n---\n\n`;
   });
 
@@ -752,19 +610,6 @@ function refreshSend() {
 async function ask(c) {
   const last = c.messages[c.messages.length - 1];
   const lastText = last ? (last.displayText || last.content || '') : '';
-
-  // Demande de document : génération dédiée (Word, Excel, PDF)
-  const docFormat = last && !last.attachment ? detectDocFormat(lastText) : null;
-  if (last && docFormat) {
-    c.messages.push({
-      role: 'assistant',
-      content: '',
-      doc: { prompt: extractDocPrompt(lastText), format: docFormat, id: uid(), title: '' },
-    });
-    c.updated = Date.now();
-    save(); renderMessages(); renderHistory(); scrollDown();
-    return;
-  }
 
   // Demande d'image : génération dédiée, sans passer par le chat texte
   if (last && !last.attachment && isImageRequest(lastText)) {
@@ -1036,33 +881,6 @@ el.messages.addEventListener('click', async (e) => {
     return;
   }
 
-  const docFormatBtn = e.target.closest('.docformats [data-docformat]');
-  if (docFormatBtn) {
-    const card = docFormatBtn.closest('.doccard');
-    const format = docFormatBtn.dataset.docformat;
-    if (card && format && format !== card.dataset.format) {
-      const c = active(), m = c && c.messages[+card.closest('.msg')?.dataset.idx];
-      card.dataset.format = format;
-      card.dataset.id = uid();
-      card.querySelectorAll('.docformats [data-docformat]').forEach((b) => b.setAttribute('aria-pressed', String(b === docFormatBtn)));
-      if (m && m.doc) { m.doc.format = format; m.doc.id = card.dataset.id; save(); }
-      hydrateDoc(card);
-    }
-    return;
-  }
-
-  const docBtn = e.target.closest('[data-doc]');
-  if (docBtn) {
-    const card = docBtn.closest('.doccard');
-    if (card && docBtn.dataset.doc === 'regen') {
-      const c = active(), m = c && c.messages[+card.closest('.msg')?.dataset.idx];
-      card.dataset.id = uid();
-      if (m && m.doc) { m.doc.id = card.dataset.id; save(); }
-      hydrateDoc(card);
-    }
-    return;
-  }
-
   const ratioBtn = e.target.closest('.imgratios [data-ratio]');
   if (ratioBtn) {
     const card = ratioBtn.closest('.imgcard');
@@ -1135,7 +953,6 @@ $('themeBtn').onclick = () => {
   el.greeting.textContent = h < 5 ? 'Bonne nuit !' : h < 18 ? 'Bonjour !' : 'Bonsoir !';
 
   const suggestions = [
-    { icon: 'file', title: 'Créer un document', prompt: '/pdf ' },
     { icon: 'image', title: 'Créer une image', prompt: 'Génère une image de ' },
     { icon: 'pen', title: 'Écrire ou corriger un texte', prompt: 'Corrige et améliore ce texte : ' },
     { icon: 'code', title: 'Écrire ou déboguer du code', prompt: 'Aide-moi à écrire une fonction JavaScript qui ' },

@@ -7,6 +7,8 @@
 
 export const config = { runtime: 'edge' };
 
+import { geminiKeys } from './_keys.js';
+
 // Modèles essayés dans l'ordre (le premier qui répond est utilisé).
 const MODELS = [
   'gemini-3.5-flash-lite',
@@ -60,7 +62,7 @@ export default async function handler(req) {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (req.method !== 'POST') return json(405, { error: 'Méthode non autorisée.', code: 'method_not_allowed' });
 
-  const keys = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_2, process.env.GEMINI_API_KEY_3].filter(Boolean);
+  const keys = geminiKeys();
   if (!keys.length) return json(500, { error: 'Clé Gemini non configurée.', code: 'unavailable' });
 
   let body;

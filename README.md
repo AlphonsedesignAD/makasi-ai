@@ -7,15 +7,14 @@ Un assistant conversationnel intelligent propulsé par l'API Gemini, doté d'une
 ```text
 makasi-ai/
 ├── api/
-│   ├── chat.js        # Chat texte (Gemini, streaming)
-│   ├── image.js       # Génération d'images (serveur, avec repli et cache)
-│   └── documents.js   # Génération de documents Word, Excel et PDF
+│   ├── _keys.js       # Lecture des clés Gemini (1 à N clés)
+│   ├── chat.js        # Chat texte (Gemini, streaming, repli multi-modèles)
+│   └── image.js       # Génération d'images (serveur, repli multi-modèles)
 ├── index.html         # Interface utilisateur
 ├── style.css          # Design soigné & responsive avec animations
 ├── app.js             # Logique frontend (SSE streaming)
-├── package.json       # Dépendances serveur (docx, exceljs, pdf-lib)
 ├── vercel.json        # Configuration de routage Vercel
-├── .env.example       # Modèle de variable d'environnement
+├── .env.example       # Modèle de variables d'environnement
 └── .gitignore         # Empêche la publication des secrets (.env)
 ```
 
@@ -30,7 +29,6 @@ makasi-ai/
 5. Cliquez sur **Deploy**.
 
 Votre site sera en ligne et votre clé d'API restera 100% sécurisée côté serveur, invisible pour les visiteurs et absente de GitHub !
-
 
 ## Images
 
@@ -50,55 +48,49 @@ POST /api/image   { "prompt": "un chat", "ratio": "16:9", "style": "photo", "see
 
 Réponse : l'image binaire (`image/png` ou `image/jpeg`), avec les en-têtes `X-Image-Source` et `X-Image-Ratio`. En cas d'échec : JSON `{ "error": "…", "code": "quota|blocked|unavailable|invalid_request" }`.
 
-## Documents (Word, Excel, PDF)
+## Plusieurs clés API Gemini
 
-Demandez un document dans le chat, par exemple « crée un rapport Word sur … », « fais-moi un budget Excel » ou « génère une lettre de motivation PDF ». Vous pouvez aussi utiliser une commande : `/pdf …`, `/word …`, `/excel …`.
+Le quota gratuit est journalier **et par modèle, pour chaque projet Google**. Ajouter une deuxième clé (créée sur un autre projet Google AI) multiplie donc le quota disponible.
 
-L'application détecte le format, appelle `/api/documents`, puis affiche une carte avec :
+### En local (`.env`)
 
-- le **téléchargement** du vrai fichier (`.docx`, `.xlsx`, `.pdf`) ;
-- le **changement de format** (PDF ↔ Word ↔ Excel) sans réécrire la demande ;
-- la **régénération** du document.
+Deux formats sont acceptés, au choix :
 
-Gemini rédige le contenu (titre, sections, paragraphes, puces, tableaux) au format JSON structuré, puis le serveur fabrique le fichier :
-
-| Format | Bibliothèque | Contenu |
-| --- | --- | --- |
-| Word `.docx` | `docx` | Titre, sous-titre, sections, listes à puces, tableaux stylés |
-| Excel `.xlsx` | `exceljs` | Feuilles multiples, en-têtes colorés, filtres, nombres typés |
-| PDF | `pdf-lib` | Mise en page A4, tableaux, pagination « Page x / y » |
-
-Les documents sont générés par `gemini-3.5-flash-lite` en priorité, avec bascule automatique vers `gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-3.1-flash-lite` puis `gemini-3.5-flash` si un modèle est saturé ou à court de quota. Reprise automatique et délai maximal de 60 s.
-
-### API
-
-```http
-POST /api/documents
-Content-Type: application/json
-
-{ "prompt": "rapport sur l'IA dans l'éducation", "format": "docx" }
+```bash
+# Format 1 — une variable par clé
+GEMINI_API_KEY=AQ.premiere_cle
+GEMINI_API_KEY_2=AQ.deuxieme_cle
+GEMINI_API_KEY_3=AQ.troisieme_cle
 ```
 
-`format` vaut `docx`, `xlsx` ou `pdf` (par défaut `pdf`). En cas de succès, la réponse est le fichier binaire avec `Content-Disposition`, `X-Document-Title` et `X-Document-Format`. En cas d'échec : JSON `{ "error": "…", "code": "quota|format|upstream|unavailable|invalid_request" }`.
+```bash
+# Format 2 — une seule variable, clés séparées par des virgules
+GEMINI_API_KEYS=AQ.premiere_cle,AQ.deuxieme_cle,AQ.troisieme_cle
+```
 
-> La génération de documents utilise le quota Gemini texte (aucune facturation n'est nécessaire en principe). Si le quota gratuit est momentanément épuisé, l'interface affiche un message clair et permet de réessayer.
+Les deux formats peuvent être combinés. Les clés en double sont ignorées.
+
+### Sur Vercel
+
+**Settings → Environment Variables** : ajoutez `GEMINI_API_KEY_2` (puis `GEMINI_API_KEY_3`, …) avec vos autres clés, pour **Production** et **Preview**, puis **Redeploy**.
+
+L'application utilise les clés dans l'ordre et passe automatiquement à la suivante quand une clé est refusée ou que ses modèles sont épuisés.
 
 ## Quotas Gemini
 
 Le quota gratuit Gemini est **journalier et par modèle**. Makasi AI en tient compte :
 
-- le chat et les documents **basculent automatiquement** vers un autre modèle quand le modèle courant est épuisé (liste : `gemini-3.5-flash-lite`, `gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.5-flash`) ;
+- le chat **bascule automatiquement** vers un autre modèle quand le modèle courant est épuisé (liste : `gemini-3.5-flash-lite`, `gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.5-flash`) ;
 - un modèle en quota atteint est mis de côté pendant quelques heures pour ne pas gaspiller d'appels ;
-- si **tous** les modèles sont épuisés, l'interface affiche un message lisible avec le délai avant nouvel essai — jamais le JSON brut de Google ;
-- pour multiplier le quota, ajoutez des clés de secours `GEMINI_API_KEY_2` et `GEMINI_API_KEY_3` (autres projets Google AI). Elles sont utilisées automatiquement.
+- si **tous** les modèles et toutes les clés sont épuisés, l'interface affiche un message lisible avec le délai avant nouvel essai — jamais le JSON brut de Google ;
+- ajoutez `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3`… (ou `GEMINI_API_KEYS`) pour multiplier le quota.
 
 La génération d'**images** reste soumise à la facturation Google AI (quota gratuit à 0).
 
 ## Test en local
 
 ```bash
-npm install
 vercel dev
 ```
 
-`vercel dev` sert le site et les trois fonctions (`/api/chat`, `/api/image`, `/api/documents`) avec le fichier `.env`.
+`vercel dev` sert le site et les fonctions (`/api/chat`, `/api/image`) avec le fichier `.env`.

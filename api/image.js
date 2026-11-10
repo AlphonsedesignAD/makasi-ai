@@ -1,10 +1,13 @@
 // api/image.js — Génération d'image via Gemini Image (Vercel Edge)
 // Modèles : gemini-3.1-flash-image → gemini-3-pro-image → gemini-2.5-flash-image
+// Plusieurs clés API peuvent être configurées (GEMINI_API_KEY, GEMINI_API_KEYS, _2…_9).
 //
 // GET  /api/image?prompt=...&ratio=16:9&style=photo&seed=123
 // POST /api/image  { "prompt": "...", "ratio": "16:9", "style": "photo", "seed": 123 }
 
 export const config = { runtime: 'edge' };
+
+import { geminiKeys } from './_keys.js';
 
 /* Budget de la fonction (les Edge Functions Vercel coupent à 30 s) */
 const TOTAL_BUDGET_MS = 27000;
@@ -53,7 +56,7 @@ class ImageError extends Error {
 
 const MESSAGES = {
   quota:
-    "Le quota de génération d'images Gemini est épuisé. Activez la facturation sur votre projet Google AI (aistudio.google.com) puis réessayez.",
+    "Le quota de génération d'images Gemini est épuisé sur toutes les clés configurées. Activez la facturation sur votre projet Google AI (aistudio.google.com) puis réessayez.",
   blocked: 'La demande a été bloquée par les filtres de sécurité. Reformulez votre description.',
   upstream: "Le service d'images Gemini est momentanément indisponible. Réessayez dans un instant.",
   unavailable: "Impossible de générer l'image pour le moment. Réessayez dans un instant.",
@@ -203,22 +206,29 @@ export default async function handler(req) {
   const ratio = cleanRatio(input.ratio);
   const style = cleanStyle(input.style);
   const prompt = buildPrompt(rawPrompt, style, ratio);
-  const apiKey = process.env.GEMINI_API_KEY;
 
+  const keys = geminiKeys();
   let lastError = null;
+  let stopped = false;
 
-  // Gemini Image — du plus rapide au plus ancien
-  if (apiKey) {
-    for (const model of MODELS) {
-      const remaining = budget();
-      if (remaining < MIN_ATTEMPT_MS) break;
-      try {
-        const result = await geminiImage(prompt, ratio, apiKey, model, Math.min(remaining, 25000));
-        return imageResponse(result, ratio);
-      } catch (e) {
-        lastError = e;
-        // Inutile d'essayer les autres modèles : le quota ou le filtre s'appliquent au compte.
-        if (e.code === 'quota' || e.code === 'blocked') break;
+  // Gemini Image — multi-clés, puis multi-modèles (du plus rapide au plus ancien)
+  if (keys.length) {
+    outer: for (const key of keys) {
+      for (const model of MODELS) {
+        const remaining = budget();
+        if (remaining < MIN_ATTEMPT_MS) break outer;
+        try {
+          const result = await geminiImage(prompt, ratio, key, model, Math.min(remaining, 25000));
+          return imageResponse(result, ratio);
+        } catch (e) {
+          lastError = e;
+          // Blocage de sécurité : on arrête (la formulation n'est pas acceptable).
+          // Quota / indisponibilité : on passe au modèle suivant puis à la clé suivante.
+          if (e.code === 'blocked') {
+            stopped = true;
+            break outer;
+          }
+        }
       }
     }
   } else {
