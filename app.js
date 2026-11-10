@@ -159,7 +159,22 @@ function md(text) {
     if ((m = line.match(/^\x00(\d+)\x00$/))) {
       flushP(); flushL();
       const b = blocks[+m[1]];
-      out.push(`<div class="codeblock"><div class="codehead"><span>${esc(b.lang || 'code')}</span><button data-copy>Copier</button></div><pre><code>${esc(b.code)}</code></pre></div>`);
+      const langLabel = esc(b.lang || 'code');
+      out.push(`
+        <div class="codeblock">
+          <div class="codehead">
+            <div class="codehead-left">
+              <span class="term-dots"><i class="dot-r"></i><i class="dot-y"></i><i class="dot-g"></i></span>
+              <span class="code-lang">${langLabel}</span>
+            </div>
+            <button class="code-copy-btn" data-copy aria-label="Copier le code">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg>
+              <span>Copier</span>
+            </button>
+          </div>
+          <pre><code class="language-${langLabel}">${esc(b.code)}</code></pre>
+        </div>
+      `);
     } else if ((m = line.match(/^\x01(\d+)\x01$/))) {
       flushP(); flushL();
       const img = imgBlocks[+m[1]];
@@ -508,6 +523,11 @@ function setBusy(b) {
   el.send.hidden = b;
   el.input.disabled = false;
   refreshSend();
+  const dot = document.getElementById('statusDot');
+  if (dot) {
+    dot.classList.toggle('busy', b);
+    dot.title = b ? 'Génération en cours…' : 'Connecté';
+  }
 }
 
 function refreshSend() {
@@ -769,9 +789,14 @@ $('clearAll').onclick = () => {
 el.messages.addEventListener('click', async (e) => {
   const copyCode = e.target.closest('[data-copy]');
   if (copyCode) {
-    await navigator.clipboard.writeText(copyCode.closest('.codeblock').querySelector('code').textContent);
-    copyCode.textContent = 'Copié ✓';
-    setTimeout(() => (copyCode.textContent = 'Copier'), 1500);
+    const code = copyCode.closest('.codeblock').querySelector('code').textContent;
+    await navigator.clipboard.writeText(code);
+    copyCode.classList.add('copied');
+    copyCode.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg><span>Copié !</span>`;
+    setTimeout(() => {
+      copyCode.classList.remove('copied');
+      copyCode.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg><span>Copier</span>`;
+    }, 1800);
     return;
   }
 
