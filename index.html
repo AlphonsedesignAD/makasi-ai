@@ -2,233 +2,126 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Makasi AI</title>
-<meta name="description" content="Makasi AI — Assistant intelligent, rapide et puissant.">
-<meta name="theme-color" content="#12151a">
-
-<!-- Favicon SVG -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f59e0b'/%3E%3Cstop offset='100%25' stop-color='%23ea580c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='10' fill='url(%23g)'/%3E%3Cpath d='M8 23V9l8 9 8-9v14' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-
-<!-- Polices modernes -->
+<meta name="description" content="Makasi AI — Assistant intelligent, rapide et simple.">
+<meta name="theme-color" content="#131314">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Makasi AI">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234285f4'/%3E%3Cstop offset='50%25' stop-color='%239b72cb'/%3E%3Cstop offset='100%25' stop-color='%23d96570'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='192' height='192' rx='48' fill='url(%23g)'/%3E%3Cpath d='M48 138V54l48 54 48-54v84' fill='none' stroke='white' stroke-width='19.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234285f4'/%3E%3Cstop offset='1' stop-color='%239b72cb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='10' fill='url(%23g)'/%3E%3Cpath d='M8 23V9l8 9 8-9v14' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-
 <script>
   try {
-    var theme = localStorage.getItem('makasi.theme') || 'dark';
-    document.documentElement.dataset.theme = theme;
+    var t = localStorage.getItem('makasi.theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.dataset.theme = t;
   } catch (e) {}
 </script>
 </head>
 <body>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-logo" viewBox="0 0 32 32"><path d="M8 23V9l8 9 8-9v14"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2.5" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="m21.4 11-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4.2L4 9M4 4v5h5M4 13a8 8 0 0 0 14.5 4.2L20 15M20 20v-5h-5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.5"/><path d="m21 16-5-5-8 8"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-5 4 5 4M16 8l5 4-5 4M14 5l-4 14"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 10h18M9 4v16"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16zM13.5 6.5l4 4"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></symbol>
+</defs></svg>
+
 <div class="app" id="app">
 
-  <!-- ================= SIDEBAR ================= -->
   <aside class="sidebar" id="sidebar" aria-label="Menu principal">
-    
     <div class="side-top">
-      <a class="brand" href="./" aria-label="Makasi AI">
-        <span class="logo">
-          <svg viewBox="0 0 32 32" width="20" height="20" aria-hidden="true">
-            <path d="M8 23V9l8 9 8-9v14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-        <div class="brand-text">
-          <span class="brand-name">Makasi <b>AI</b></span>
-        </div>
-      </a>
-      <button class="icon-btn close-side-btn" id="closeSide" aria-label="Fermer le menu">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-      </button>
+      <button class="icon-btn" id="closeSide" aria-label="Fermer le menu"><svg class="ic"><use href="#i-x"/></svg></button>
     </div>
-
-    <!-- Nouvelle Discussion -->
-    <button class="new-chat-btn" id="newChat">
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-      </svg>
-      <span>Nouvelle discussion</span>
-    </button>
-
-    <!-- Recherche -->
-    <div class="search-box">
-      <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" class="search-icon">
-        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none"/>
-        <path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <input class="search" id="search" type="search" placeholder="Rechercher..." aria-label="Rechercher" autocomplete="off">
-    </div>
-
-    <!-- Historique des discussions -->
-    <nav class="history" id="history" aria-label="Historique des conversations"></nav>
-
-    <!-- Pied de sidebar -->
+    <button class="new-chat-btn" id="newChat"><svg class="ic"><use href="#i-plus"/></svg><span>Nouvelle discussion</span></button>
+    <label class="search-box"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="search" type="search" placeholder="Rechercher" aria-label="Rechercher" autocomplete="off"></label>
+    <nav class="history" id="history" aria-label="Historique"></nav>
     <div class="side-bottom">
-      <!-- Contact créateur discret -->
-      <a href="https://wa.me/243971404824" target="_blank" rel="noopener noreferrer" class="contact-card-link" title="Contacter Alphonse Design sur WhatsApp">
-        <div class="contact-avatar">AD</div>
-        <div class="contact-details">
-          <span class="contact-name">Alphonse Design</span>
-          <span class="contact-sub">WhatsApp : 0971404824</span>
-        </div>
-      </a>
-
-      <div class="side-bottom-actions">
-        <button class="ghost-btn" id="themeBtn" aria-label="Changer de thème">
-          <span id="themeIcon">🌙</span>
-          <span id="themeLabel">Thème</span>
-        </button>
-        <button class="ghost-btn danger" id="clearAll" aria-label="Effacer tout l'historique">
-          <svg viewBox="0 0 24 24" width="15" height="15"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-          <span>Effacer</span>
-        </button>
+      <button class="install-pwa-btn" id="installAppBtn" title="Installer Makasi AI sur votre téléphone ou PC" aria-label="Installer l'application"><svg class="ic"><use href="#i-download"/></svg><span>Installer l’app</span></button>
+      <div class="side-bottom-row">
+        <a class="credit" href="https://wa.me/243971404824" target="_blank" rel="noopener noreferrer">Alphonse Design</a>
+        <button class="icon-btn" id="themeBtn" aria-label="Changer de thème"><span id="themeIcon"></span></button>
+        <button class="icon-btn" id="clearAll" aria-label="Effacer l’historique"><svg class="ic"><use href="#i-trash"/></svg></button>
       </div>
     </div>
   </aside>
-
-  <!-- Voile assombrissant sur mobile -->
   <div class="scrim" id="scrim" aria-hidden="true"></div>
 
-  <!-- ================= ZONE PRINCIPALE ================= -->
   <main class="main">
-
-    <!-- En-tête supérieur -->
     <header class="topbar">
       <div class="topbar-left">
-        <button class="icon-btn mobile-menu-btn" id="openSide" aria-label="Ouvrir le menu">
-          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-        <div class="topbar-info">
-          <h1 class="chat-title" id="chatTitle">Makasi AI</h1>
-          <span class="chat-status"><span class="status-dot"></span> Prêt</span>
-        </div>
+        <button class="icon-btn mobile-menu-btn" id="openSide" aria-label="Ouvrir le menu"><svg class="ic"><use href="#i-menu"/></svg></button>
+        <span class="mark"><svg class="ic"><use href="#i-logo"/></svg></span>
+        <h1 class="chat-title" id="chatTitle">Makasi AI</h1>
+        <span class="status-dot" id="statusDot" title="Connecté"></span>
       </div>
-
       <div class="topbar-right">
-        <button class="icon-btn" id="exportChatBtn" title="Exporter la discussion" aria-label="Exporter">
-          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-        </button>
+        <button class="icon-btn" id="topInstallBtn" title="Installer Makasi AI sur votre appareil" aria-label="Installer l'application"><svg class="ic"><use href="#i-download"/></svg></button>
+        <button class="icon-btn" id="exportChatBtn" title="Exporter la discussion" aria-label="Exporter"><svg class="ic"><use href="#i-export"/></svg></button>
       </div>
     </header>
 
-    <!-- Zone de défilement des messages -->
     <section class="scroll" id="scroll">
-
-      <!-- Écran d'accueil -->
       <div class="welcome" id="welcome">
-        
-        <div class="welcome-header">
-          <div class="logo big" aria-hidden="true">
-            <svg viewBox="0 0 32 32" width="36" height="36">
-              <path d="M8 23V9l8 9 8-9v14" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <h2 id="greeting">Bonjour !</h2>
-          <p class="welcome-subtitle">
-            Je suis <strong>Makasi AI</strong>. Posez-moi une question, écrivez du code ou joignez un fichier pour que je l'analyse.
-          </p>
-        </div>
-
-        <!-- Suggestions de démarrage rapides -->
-        <div class="chips-container">
-          <span class="chips-label">Suggestions :</span>
-          <div class="chips" id="chips" role="list"></div>
-        </div>
-
+        <h2 id="greeting">Bonjour !</h2>
+        <p class="welcome-sub">Comment puis-je vous aider ?</p>
+        <div class="chips" id="chips"></div>
       </div>
-
-      <!-- Fil des messages -->
       <div class="messages" id="messages" role="log" aria-live="polite"></div>
-
     </section>
 
-    <!-- Compositeur de message -->
     <footer class="composer-wrap">
-      
-      <!-- Prévisualisation du fichier joint -->
-      <div class="file-preview-bar" id="filePreviewBar" hidden>
-        <div class="file-preview-info">
-          <span class="file-icon" id="fileIcon">📄</span>
-          <div class="file-meta">
-            <span class="file-name" id="fileName">nom_du_fichier.txt</span>
-            <span class="file-size" id="fileSize">0 KB</span>
-          </div>
+      <form class="composer" id="form">
+        <div class="file-preview-bar" id="filePreviewBar" hidden>
+          <span class="file-icon" id="fileIcon"></span>
+          <span class="file-name" id="fileName"></span>
+          <span class="file-size" id="fileSize"></span>
+          <button type="button" class="icon-btn sm" id="removeFileBtn" aria-label="Retirer le fichier"><svg class="ic"><use href="#i-x"/></svg></button>
         </div>
-        <button type="button" class="file-remove-btn" id="removeFileBtn" title="Supprimer le fichier">✕</button>
-      </div>
-
-      <!-- Barre d'état vocale (quand le micro est actif) -->
-      <div class="voice-status-bar" id="voiceBar" hidden>
-        <span class="voice-dot"></span>
-        <span id="voiceText">Parlez maintenant...</span>
-        <button type="button" class="voice-cancel" id="cancelVoice">✕</button>
-      </div>
-
-      <form class="composer" id="form" role="search">
-        
-        <!-- Input Fichier invisible -->
-        <input type="file" id="fileInput" hidden accept=".txt,.md,.js,.ts,.py,.html,.css,.json,.csv,.sql,.php,.java,.c,.cpp,.pdf,.png,.jpg,.jpeg,.webp">
-
-        <!-- Bouton Joindre un fichier (Trombone) -->
-        <button class="tool-btn" id="attachBtn" type="button" title="Joindre un fichier (texte, code, image)">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
-          </svg>
-        </button>
-
-        <!-- Bouton Micro -->
-        <button class="tool-btn" id="micBtn" type="button" title="Dictée vocale">
-          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8" y1="23" x2="16" y2="23"/>
-          </svg>
-        </button>
-
-        <!-- Zone de texte adaptative -->
-        <textarea
-          id="input"
-          rows="1"
-          placeholder="Écrivez votre message ou joignez un fichier..."
-          aria-label="Message à envoyer"
-          autocomplete="off"
-          spellcheck="true"
-        ></textarea>
-
-        <!-- Bouton Envoyer -->
-        <button class="send" id="send" type="submit" aria-label="Envoyer" disabled>
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-            <path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-
-        <!-- Bouton Arrêt de génération -->
-        <button class="send stop" id="stop" type="button" aria-label="Arrêter la réponse" hidden>
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-            <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>
-          </svg>
-        </button>
-
+        <div class="voice-status-bar" id="voiceBar" hidden>
+          <span class="voice-dot"></span><span id="voiceText"></span>
+          <button type="button" class="icon-btn sm" id="cancelVoice" aria-label="Annuler"><svg class="ic"><use href="#i-x"/></svg></button>
+        </div>
+        <textarea id="input" rows="1" placeholder="Écrivez votre message…" aria-label="Message" autocomplete="off"></textarea>
+        <div class="tools">
+          <input type="file" id="fileInput" hidden accept=".txt,.md,.js,.ts,.py,.html,.css,.json,.csv,.sql,.php,.java,.c,.cpp,.pdf,.png,.jpg,.jpeg,.webp">
+          <button class="icon-btn" id="attachBtn" type="button" title="Joindre un fichier" aria-label="Joindre un fichier"><svg class="ic"><use href="#i-plus"/></svg></button>
+          <button class="icon-btn" id="micBtn" type="button" title="Dictée vocale" aria-label="Dictée vocale"><svg class="ic"><use href="#i-mic"/></svg></button>
+          <span class="grow"></span>
+          <button class="send" id="send" type="submit" aria-label="Envoyer" disabled><svg class="ic"><use href="#i-up"/></svg></button>
+          <button class="send" id="stop" type="button" aria-label="Arrêter" hidden><svg class="ic"><use href="#i-stop"/></svg></button>
+        </div>
       </form>
-
-      <div class="composer-footnote">
-        <span>Makasi AI peut faire des erreurs. Vérifiez les informations sensibles.</span>
-      </div>
-
+      <p class="composer-footnote">Makasi AI peut faire des erreurs. Vérifiez les informations importantes.</p>
     </footer>
-
   </main>
 </div>
 
-<!-- Toast notification -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
 <script src="app.js"></script>
 </body>
 </html>
