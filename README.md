@@ -8,13 +8,12 @@ Un assistant conversationnel intelligent propulsé par l'API Gemini, doté d'une
 makasi-ai/
 ├── api/
 │   ├── _keys.js       # Lecture des clés Gemini (1 à N clés)
-│   ├── chat.js        # Chat texte (Gemini, streaming, repli multi-modèles)
-│   └── image.js       # Génération d'images (serveur, repli multi-modèles)
+│   └── chat.js        # Chat texte (Gemini, streaming, repli multi-modèles)
 ├── index.html         # Interface utilisateur
 ├── style.css          # Design soigné & responsive avec animations
 ├── app.js             # Logique frontend (SSE streaming)
 ├── vercel.json        # Configuration de routage Vercel
-├── .env.example       # Modèle de variables d'environnement
+├── .env.example       # Modèle de variable d'environnement
 └── .gitignore         # Empêche la publication des secrets (.env)
 ```
 
@@ -29,24 +28,6 @@ makasi-ai/
 5. Cliquez sur **Deploy**.
 
 Votre site sera en ligne et votre clé d'API restera 100% sécurisée côté serveur, invisible pour les visiteurs et absente de GitHub !
-
-## Images
-
-Tapez par exemple « génère une image de … » ou `/image …`. La génération passe par `/api/image` (plus fiable que l'appel direct depuis le navigateur).
-
-- **Formats** : `1:1`, `16:9`, `9:16`, `4:3`, `3:4`. Le format est déduit de la phrase (« en portrait », « format 16:9 », « paysage »…) et reste modifiable sous l'image.
-- **Styles** : photo, illustration, 3D, anime, logo — déduits de la phrase ou passés via `style`.
-- **Moteur** : Gemini Image (`gemini-3.1-flash-image` → `gemini-3-pro-image` → `gemini-2.5-flash-image`).
-- **Quota** : la génération d'images Gemini nécessite un projet Google AI avec facturation activée. Sans facturation, l'API renvoie `429 RESOURCE_EXHAUSTED` et l'interface affiche un message explicite.
-
-### API
-
-```http
-GET  /api/image?prompt=un%20chat&ratio=16:9&style=photo&seed=42
-POST /api/image   { "prompt": "un chat", "ratio": "16:9", "style": "photo", "seed": 42 }
-```
-
-Réponse : l'image binaire (`image/png` ou `image/jpeg`), avec les en-têtes `X-Image-Source` et `X-Image-Ratio`. En cas d'échec : JSON `{ "error": "…", "code": "quota|blocked|unavailable|invalid_request" }`.
 
 ## Plusieurs clés API Gemini
 
@@ -85,12 +66,10 @@ Le quota gratuit Gemini est **journalier et par modèle**. Makasi AI en tient co
 - si **tous** les modèles et toutes les clés sont épuisés, l'interface affiche un message lisible avec le délai avant nouvel essai — jamais le JSON brut de Google ;
 - ajoutez `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3`… (ou `GEMINI_API_KEYS`) pour multiplier le quota.
 
-La génération d'**images** reste soumise à la facturation Google AI (quota gratuit à 0).
-
 ## Test en local
 
 ```bash
 vercel dev
 ```
 
-`vercel dev` sert le site et les fonctions (`/api/chat`, `/api/image`) avec le fichier `.env`.
+`vercel dev` sert le site et la fonction (`/api/chat`) avec le fichier `.env`.

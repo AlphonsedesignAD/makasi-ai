@@ -17,9 +17,7 @@ RÈGLES DE CONVERSATION :
    - ou un contact / devis professionnel,
    ALORS présente Alphonse Design avec fierté et donne son contact : WhatsApp / Téléphone : 0971404824 (https://wa.me/243971404824).
 4. Lorsque l'utilisateur joint un fichier ou du code, analyse-le attentivement, résume-le ou réponds précisément aux instructions demandées sur ce document.
-
 5. Adapte-toi toujours à la langue de l'utilisateur (français, lingala, swahili, anglais...).`,
-  IMAGE_URL: '/api/image',
   MAX_HISTORY: 20
 };
 
@@ -46,8 +44,6 @@ function parseChunk(data) {
    Éléments DOM & État
    ============================================================ */
 const $ = (id) => document.getElementById(id);
-const ic = (n) => `<svg class="ic"><use href="#i-${n}"/></svg>`;
-const rnd = () => Math.floor(Math.random() * 9e6) + 1e6;
 const el = {
   app: $('app'), history: $('history'), search: $('search'), scroll: $('scroll'),
   messages: $('messages'), input: $('input'), form: $('form'), send: $('send'), stop: $('stop'),
@@ -90,46 +86,8 @@ function toast(msg) {
   toast.t = setTimeout(() => el.toast.classList.remove('show'), 2200);
 }
 
-/* ---------- Détection et Extraction des Requêtes d'Images ---------- */
-function isImageRequest(text) {
-  const t = (text || '').toLowerCase().trim();
-  if (/^\/(image|img)\b/.test(t)) return true;
-  if (/docker|conteneur|container|\biso\b|code\b|python|javascript/.test(t)) return false;
-  return /\b(g[ée]n[èe]re[rz]?|cr[ée]+[rz]?|dessine[rz]?|fais|produis|generate|draw|create|make)\b[^.!?\n]{0,25}\b(image|photo|illustration|dessin|picture)\b/.test(t);
-}
-
-function extractImagePrompt(text) {
-  const c = text.replace(/^\/(image|img)\s*/i, '')
-    .replace(/^.*?\b(image|photo|illustration|dessin|picture)s?\b\s*(?:de |d'|du |des |sur |of |:)?\s*/i, '').trim();
-  return c || text;
-}
-
-/* Format demandé dans la phrase (16:9, portrait, paysage…) */
-function detectImageRatio(text) {
-  const t = (text || '').toLowerCase();
-  if (/\b16\s*[:/x]\s*9\b/.test(t)) return '16:9';
-  if (/\b9\s*[:/x]\s*16\b/.test(t)) return '9:16';
-  if (/\b4\s*[:/x]\s*3\b/.test(t)) return '4:3';
-  if (/\b3\s*[:/x]\s*4\b/.test(t)) return '3:4';
-  if (/\b(carr[ée]|square|1\s*[:/x]\s*1)\b/.test(t)) return '1:1';
-  if (/\b(paysage|horizontal|landscape|banni[èe]re|banner|wide)\b/.test(t)) return '16:9';
-  if (/\b(portrait|vertical|story|stories|tiktok|r[ée]el)\b/.test(t)) return '9:16';
-  return '1:1';
-}
-
-/* Style demandé (photo, illustration, 3D, anime, logo) */
-function detectImageStyle(text) {
-  const t = (text || '').toLowerCase();
-  if (/\b(logo|ic[ôo]ne|icon|embl[èe]me)\b/.test(t)) return 'logo';
-  if (/\b(anime|manga|cartoon|dessin anim[ée])\b/.test(t)) return 'anime';
-  if (/\b(3d|rendu|render)\b/.test(t)) return '3d';
-  if (/\b(illustration|dessin|aquarelle|peinture|art|drawing|painting)\b/.test(t)) return 'illustration';
-  if (/\b(photo|photor[ée]aliste|r[ée]aliste|realistic)\b/.test(t)) return 'photo';
-  return '';
-}
-
 /* ---------- Markdown léger & soigné ---------- */
-const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function inline(s) {
   return s.split(/(`[^`\n]+`)/g).map((part, i) => {
@@ -142,67 +100,22 @@ function inline(s) {
 }
 
 function md(text) {
-  if (!text) return '';
-
-  // 1. Extraire les blocs de code d'abord
   const blocks = [];
-  let s = text.replace(/```([\w+-]*)\n?([\s\S]*?)(```|$)/g, (_, lang, code) => {
+  let s = esc(text).replace(/```([\w+-]*)\n?([\s\S]*?)(```|$)/g, (_, lang, code) => {
     blocks.push({ lang, code: code.replace(/\n$/, '') });
-    return `\n\x00${blocks.length - 1}\x00\n`;
+    return '\n\x00' + (blocks.length - 1) + '\x00\n';
   });
 
-  // 2. Extraire les blocs d'images Markdown ![alt](url)
-  const imgBlocks = [];
-  s = s.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, (_, alt, url) => {
-    imgBlocks.push({ alt: alt.trim(), url: url.trim() });
-    return `\n\x01${imgBlocks.length - 1}\x01\n`;
-  });
-
-  // 3. Échapper le reste en toute sécurité
-  s = esc(s);
-
-  const out = [];
-  let list = null;
-  let para = [];
-
-  const flushP = () => {
-    if (para.length) {
-      out.push('<p>' + inline(para.join('<br>')) + '</p>');
-      para = [];
-    }
-  };
-  const flushL = () => {
-    if (list) {
-      out.push(`</${list}>`);
-      list = null;
-    }
-  };
+  const out = []; let list = null, para = [];
+  const flushP = () => { if (para.length) { out.push('<p>' + inline(para.join('<br>')) + '</p>'); para = []; } };
+  const flushL = () => { if (list) { out.push(`</${list}>`); list = null; } };
 
   for (const line of s.split('\n')) {
     let m;
     if ((m = line.match(/^\x00(\d+)\x00$/))) {
       flushP(); flushL();
       const b = blocks[+m[1]];
-      const langLabel = esc(b.lang || 'code');
-      out.push(`
-        <div class="codeblock">
-          <div class="codehead">
-            <div class="codehead-left">
-              <span class="term-dots"><i class="dot-r"></i><i class="dot-y"></i><i class="dot-g"></i></span>
-              <span class="code-lang">${langLabel}</span>
-            </div>
-            <button class="code-copy-btn" data-copy aria-label="Copier le code">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg>
-              <span>Copier</span>
-            </button>
-          </div>
-          <pre><code class="language-${langLabel}">${esc(b.code)}</code></pre>
-        </div>
-      `);
-    } else if ((m = line.match(/^\x01(\d+)\x01$/))) {
-      flushP(); flushL();
-      const img = imgBlocks[+m[1]];
-      out.push(`<img class="mdimg" src="${esc(img.url)}" alt="${esc(img.alt)}" loading="lazy">`);
+      out.push(`<div class="codeblock"><div class="codehead"><span>${b.lang || 'code'}</span><button data-copy>Copier</button></div><pre><code>${b.code}</code></pre></div>`);
     } else if ((m = line.match(/^(#{1,3})\s+(.*)/))) {
       flushP(); flushL(); out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);
     } else if ((m = line.match(/^\s*[-*•]\s+(.*)/))) {
@@ -211,12 +124,8 @@ function md(text) {
       flushP(); if (list !== 'ol') { flushL(); out.push('<ol>'); list = 'ol'; } out.push('<li>' + inline(m[1]) + '</li>');
     } else if ((m = line.match(/^&gt;\s?(.*)/))) {
       flushP(); flushL(); out.push('<blockquote>' + inline(m[1]) + '</blockquote>');
-    } else if (!line.trim()) {
-      flushP(); flushL();
-    } else {
-      flushL();
-      para.push(line);
-    }
+    } else if (!line.trim()) { flushP(); flushL(); }
+    else { flushL(); para.push(line); }
   }
   flushP(); flushL();
   return out.join('');
@@ -233,7 +142,7 @@ function toggleSpeech(text, btn) {
     window.speechSynthesis.cancel();
     document.querySelectorAll('[data-act="speak"]').forEach(b => {
       b.classList.remove('tts-speaking');
-      b.innerHTML = ic('speaker');
+      b.innerHTML = '🔊 Écouter';
     });
     if (btn && currentUtterance && currentUtterance.__btn === btn) {
       currentUtterance = null;
@@ -258,107 +167,21 @@ function toggleSpeech(text, btn) {
   if (frVoice) utter.voice = frVoice;
 
   btn.classList.add('tts-speaking');
-  btn.innerHTML = ic('stop');
+  btn.innerHTML = '⏹ Arrêter';
 
   utter.onend = () => {
     btn.classList.remove('tts-speaking');
-    btn.innerHTML = ic('speaker');
+    btn.innerHTML = '🔊 Écouter';
     currentUtterance = null;
   };
   utter.onerror = () => {
     btn.classList.remove('tts-speaking');
-    btn.innerHTML = ic('speaker');
+    btn.innerHTML = '🔊 Écouter';
     currentUtterance = null;
   };
 
   currentUtterance = utter;
   window.speechSynthesis.speak(utter);
-}
-
-/* ---------- Images générées ---------- */
-const IMAGE_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4'];
-const imgCache = new Map();
-
-function fetchImage({ prompt, seed, ratio, style }, onStatus) {
-  const key = [prompt, seed, ratio, style].join('|');
-  if (imgCache.has(key)) return imgCache.get(key);
-  const p = (async () => {
-    let lastErr = null;
-    for (let i = 0; i < 2; i++) {
-      if (i) {
-        if (onStatus) onStatus('Nouvel essai…');
-        await new Promise((res) => setTimeout(res, 1500));
-      }
-      try {
-        const r = await fetch(CONFIG.IMAGE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, seed, ratio, style }),
-        });
-        const type = (r.headers.get('content-type') || '').split(';')[0];
-        if (r.ok && type.startsWith('image/')) {
-          const b = await r.blob();
-          return { url: URL.createObjectURL(b), mime: b.type || type };
-        }
-        let msg = '';
-        try { msg = (await r.json())?.error || ''; } catch (_) {}
-        lastErr = new Error(msg || `Erreur ${r.status}`);
-        // Erreur définitive (demande invalide, sécurité…) : inutile de réessayer.
-        if (r.status < 500) break;
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-    throw lastErr || new Error('L’image n’a pas pu être créée.');
-  })();
-  imgCache.set(key, p);
-  p.catch(() => imgCache.delete(key));
-  return p;
-}
-
-function imageCard(img) {
-  const ratio = img.ratio || '1:1';
-  const ratios = IMAGE_RATIOS.map(
-    (r) => `<button type="button" data-ratio="${r}" aria-pressed="${r === ratio}">${r}</button>`
-  ).join('');
-  return `<figure class="imgcard" data-state="loading" data-prompt="${esc(img.prompt)}" data-seed="${img.seed}" data-ratio="${ratio}" data-style="${esc(img.style || '')}">
-    <div class="imgframe" style="--ratio:${ratio.replace(':', '/')}"><img alt="${esc(img.prompt)}" loading="lazy">
-      <div class="imgph"><span>Création de l’image…</span></div>
-      <div class="imgerr"><span>L’image n’a pas pu être créée.</span><button type="button" data-img="regen">${ic('refresh')} Réessayer</button></div>
-    </div>
-    <figcaption>
-      <div class="imgratios" role="group" aria-label="Format de l’image">${ratios}</div>
-      <span class="cap">${esc(img.prompt)}</span>
-      <button type="button" class="icon-btn sm" data-img="regen" title="Nouvelle variante" aria-label="Nouvelle variante">${ic('refresh')}</button>
-      <a class="icon-btn sm" data-img="dl" download="makasi-image.png" title="Télécharger" aria-label="Télécharger">${ic('download')}</a>
-    </figcaption></figure>`;
-}
-
-function hydrate(card) {
-  const { prompt, style } = card.dataset;
-  const seed = +card.dataset.seed;
-  const ratio = card.dataset.ratio || '1:1';
-  const st = card.querySelector('.imgph span');
-  const err = card.querySelector('.imgerr span');
-  card.dataset.state = 'loading';
-  st.textContent = 'Création de l’image…';
-  const slow = setTimeout(() => {
-    if (card.dataset.state === 'loading') st.textContent = 'Encore quelques secondes…';
-  }, 9000);
-
-  fetchImage({ prompt, seed, ratio, style }, (m) => { if (m) st.textContent = m; })
-    .then(({ url, mime }) => {
-      card.querySelector('img').src = url;
-      const dl = card.querySelector('[data-img="dl"]');
-      dl.href = url;
-      dl.download = 'makasi-image.' + (/jpeg|jpg/.test(mime) ? 'jpg' : /webp/.test(mime) ? 'webp' : 'png');
-      card.dataset.state = 'ready';
-    })
-    .catch((e) => {
-      err.textContent = e?.message || 'L’image n’a pas pu être créée.';
-      card.dataset.state = 'error';
-    })
-    .finally(() => clearTimeout(slow));
 }
 
 /* ---------- Rendu des Messages ---------- */
@@ -370,24 +193,27 @@ function msgNode(m, idx) {
   if (m.role === 'user') {
     let fileBadgeHtml = '';
     if (m.attachment) {
-      fileBadgeHtml = `<div class="attached-file-badge">${ic('clip')} ${esc(m.attachment.name)}</div>`;
+      fileBadgeHtml = `<div class="attached-file-badge">📎 ${esc(m.attachment.name)}</div>`;
     }
     d.innerHTML = `<div class="body">${fileBadgeHtml}<div class="user-text"></div></div>`;
     d.querySelector('.user-text').textContent = m.displayText || m.content || '';
   } else {
     d.innerHTML = `
-      <div class="avatar">${ic('logo')}</div>
+      <div class="avatar">
+        <svg viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 23V9l8 9 8-9v14"/>
+        </svg>
+      </div>
       <div class="content-wrap">
         <div class="body"></div>
-        ${m.image ? '' : `<div class="actions">
-          <button data-act="copy" title="Copier" aria-label="Copier">${ic('copy')}</button>
-          <button data-act="speak" title="Écouter" aria-label="Écouter">${ic('speaker')}</button>
-          <button data-act="retry" title="Régénérer" aria-label="Régénérer">${ic('refresh')}</button>
-        </div>`}
-      </div>`;
-    d.querySelector('.body').innerHTML =
-      (m.image ? imageCard(m.image) : '') +
-      md(m.content || '');
+        <div class="actions">
+          <button data-act="copy" title="Copier le texte">📋 Copier</button>
+          <button data-act="speak" title="Écouter la réponse">🔊 Écouter</button>
+          <button data-act="retry" title="Régénérer">🔄 Relancer</button>
+        </div>
+      </div>
+    `;
+    d.querySelector('.body').innerHTML = md(m.content || '');
   }
   return d;
 }
@@ -399,7 +225,6 @@ function renderMessages() {
   el.title.textContent = c && c.title ? c.title : 'Makasi AI';
   document.title = c && c.title ? c.title + ' · Makasi AI' : 'Makasi AI';
   if (c) c.messages.forEach((m, i) => el.messages.appendChild(msgNode(m, i)));
-  el.messages.querySelectorAll('.imgcard[data-state="loading"]').forEach(hydrate);
   scrollDown(false);
 }
 
@@ -433,7 +258,7 @@ function renderHistory() {
     b.forEach((c) => {
       const it = document.createElement('div');
       it.className = 'item' + (c.id === activeId ? ' active' : '');
-      it.innerHTML = '<button class="t"></button><button class="x" aria-label="Supprimer" title="Supprimer">' + ic('x') + '</button>';
+      it.innerHTML = '<button class="t"></button><button class="x" aria-label="Supprimer" title="Supprimer">✕</button>';
       it.querySelector('.t').textContent = c.title || 'Nouvelle discussion';
       it.querySelector('.t').onclick = () => { openChat(c.id); closeSide(); };
       it.querySelector('.x').onclick = (e) => { e.stopPropagation(); removeChat(c.id); };
@@ -489,9 +314,7 @@ function exportCurrentChat() {
   }
   let mdContent = `# ${c.title || 'Discussion Makasi AI'}\n\n`;
   c.messages.forEach(m => {
-    let body = m.displayText || m.content;
-    if (m.image) body = `[Image générée : ${m.image.prompt}]`;
-    mdContent += `### ${m.role === 'user' ? 'Vous' : 'Makasi AI'}\n\n${body}\n\n---\n\n`;
+    mdContent += `### ${m.role === 'user' ? '👤 Utilisateur' : '🤖 Makasi AI'}\n\n${m.displayText || m.content}\n\n---\n\n`;
   });
 
   const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8' });
@@ -512,10 +335,11 @@ function formatFileSize(bytes) {
 }
 
 function getFileIcon(name, type) {
-  if (type.startsWith('image/')) return 'image';
-  if (/\.(js|ts|py|html|css|json|sql|php|cpp|c|java)$/i.test(name)) return 'code';
-  if (/\.(csv|xlsx)$/i.test(name)) return 'table';
-  return 'file';
+  if (type.startsWith('image/')) return '🖼️';
+  if (name.endsWith('.pdf')) return '📕';
+  if (name.match(/\.(js|ts|py|html|css|json|sql|php|cpp|c|java)$/i)) return '💻';
+  if (name.endsWith('.csv') || name.endsWith('.xlsx')) return '📊';
+  return '📄';
 }
 
 async function handleFileSelect(file) {
@@ -567,7 +391,7 @@ async function handleFileSelect(file) {
     // Affichage dans la barre de prévisualisation
     el.fileName.textContent = currentAttachedFile.name;
     el.fileSize.textContent = currentAttachedFile.size;
-    el.fileIcon.innerHTML = ic(getFileIcon(file.name, file.type));
+    el.fileIcon.textContent = getFileIcon(file.name, file.type);
     el.filePreviewBar.hidden = false;
     refreshSend();
     el.input.focus();
@@ -594,11 +418,6 @@ function setBusy(b) {
   el.send.hidden = b;
   el.input.disabled = false;
   refreshSend();
-  const dot = document.getElementById('statusDot');
-  if (dot) {
-    dot.classList.toggle('busy', b);
-    dot.title = b ? 'Génération en cours…' : 'Connecté';
-  }
 }
 
 function refreshSend() {
@@ -608,26 +427,20 @@ function refreshSend() {
 }
 
 async function ask(c) {
-  const last = c.messages[c.messages.length - 1];
-  const lastText = last ? (last.displayText || last.content || '') : '';
-
-  // Demande d'image : génération dédiée, sans passer par le chat texte
-  if (last && !last.attachment && isImageRequest(lastText)) {
-    const prompt = extractImagePrompt(lastText);
-    c.messages.push({
-      role: 'assistant',
-      content: '',
-      image: { prompt, seed: rnd(), ratio: detectImageRatio(lastText), style: detectImageStyle(lastText) },
-    });
-    c.updated = Date.now();
-    save(); renderMessages(); renderHistory(); scrollDown();
-    return;
-  }
-
   setBusy(true);
+
   const holder = document.createElement('div');
   holder.className = 'msg bot';
-  holder.innerHTML = `<div class="avatar">${ic('logo')}</div><div class="content-wrap"><div class="body"><span class="typing"><i></i><i></i><i></i></span></div></div>`;
+  holder.innerHTML = `
+    <div class="avatar">
+      <svg viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 23V9l8 9 8-9v14"/>
+      </svg>
+    </div>
+    <div class="content-wrap">
+      <div class="body"><span class="typing"><i></i><i></i><i></i></span></div>
+    </div>
+  `;
   el.messages.appendChild(holder);
   scrollDown();
   const bodyEl = holder.querySelector('.body');
@@ -636,8 +449,11 @@ async function ask(c) {
   let fullText = '';
 
   try {
-    const history = c.messages.filter((m) => !m.error && !m.image).slice(-CONFIG.MAX_HISTORY)
-      .map((m) => ({ role: m.role, parts: m.parts || [{ text: m.content || '' }] }));
+    const history = c.messages.filter((m) => !m.error).slice(-CONFIG.MAX_HISTORY).map((m) => {
+      // Construction des parts pour Gemini (support texte et images inline)
+      if (m.parts) return { role: m.role, parts: m.parts };
+      return { role: m.role, parts: [{ text: m.content || '' }] };
+    });
 
     const { headers, body } = buildRequest(history);
     const res = await fetch(CONFIG.API_URL, { method: 'POST', headers, body, signal: controller.signal });
@@ -870,42 +686,9 @@ $('clearAll').onclick = () => {
 el.messages.addEventListener('click', async (e) => {
   const copyCode = e.target.closest('[data-copy]');
   if (copyCode) {
-    const code = copyCode.closest('.codeblock').querySelector('code').textContent;
-    await navigator.clipboard.writeText(code);
-    copyCode.classList.add('copied');
-    copyCode.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg><span>Copié !</span>`;
-    setTimeout(() => {
-      copyCode.classList.remove('copied');
-      copyCode.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg><span>Copier</span>`;
-    }, 1800);
-    return;
-  }
-
-  const ratioBtn = e.target.closest('.imgratios [data-ratio]');
-  if (ratioBtn) {
-    const card = ratioBtn.closest('.imgcard');
-    const ratio = ratioBtn.dataset.ratio;
-    if (card && ratio && ratio !== card.dataset.ratio) {
-      const c = active(), m = c && c.messages[+card.closest('.msg')?.dataset.idx];
-      card.dataset.ratio = ratio;
-      card.querySelector('.imgframe').style.setProperty('--ratio', ratio.replace(':', '/'));
-      card.querySelectorAll('.imgratios [data-ratio]').forEach((b) => b.setAttribute('aria-pressed', String(b === ratioBtn)));
-      card.dataset.seed = rnd();
-      if (m && m.image) { m.image.ratio = ratio; m.image.seed = +card.dataset.seed; save(); }
-      hydrate(card);
-    }
-    return;
-  }
-
-  const imgBtn = e.target.closest('[data-img]');
-  if (imgBtn) {
-    const card = imgBtn.closest('.imgcard');
-    if (card && imgBtn.dataset.img === 'regen') {
-      const c = active(), m = c && c.messages[+card.closest('.msg')?.dataset.idx];
-      card.dataset.seed = rnd();
-      if (m && m.image) { m.image.seed = +card.dataset.seed; save(); }
-      hydrate(card);
-    }
+    await navigator.clipboard.writeText(copyCode.closest('.codeblock').querySelector('code').textContent);
+    copyCode.textContent = 'Copié ✓';
+    setTimeout(() => (copyCode.textContent = 'Copier'), 1500);
     return;
   }
 
@@ -937,13 +720,14 @@ $('scrim').onclick = closeSide;
 /* Thème */
 function applyTheme(t) {
   if (t) document.documentElement.dataset.theme = t;
-  const dark = document.documentElement.dataset.theme !== 'light';
-  $('themeIcon').innerHTML = ic(dark ? 'sun' : 'moon');
-  document.querySelector('meta[name="theme-color"]').content = dark ? '#131314' : '#ffffff';
+  const dark = (document.documentElement.dataset.theme || 'dark') === 'dark';
+  $('themeIcon').textContent = dark ? '🌙' : '☀️';
+  $('themeLabel').textContent = dark ? 'Sombre' : 'Clair';
 }
 $('themeBtn').onclick = () => {
-  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-  try { localStorage.setItem('makasi.theme', next); } catch (e) {}
+  const current = document.documentElement.dataset.theme || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('makasi.theme', next);
   applyTheme(next);
 };
 
@@ -953,72 +737,32 @@ $('themeBtn').onclick = () => {
   el.greeting.textContent = h < 5 ? 'Bonne nuit !' : h < 18 ? 'Bonjour !' : 'Bonsoir !';
 
   const suggestions = [
-    { icon: 'image', title: 'Créer une image', prompt: 'Génère une image de ' },
-    { icon: 'pen', title: 'Écrire ou corriger un texte', prompt: 'Corrige et améliore ce texte : ' },
-    { icon: 'code', title: 'Écrire ou déboguer du code', prompt: 'Aide-moi à écrire une fonction JavaScript qui ' },
-    { icon: 'bulb', title: 'Trouver des idées', prompt: 'Donne-moi 5 idées originales de projets web.' }
+    { title: '📝 Corriger ou améliorer un texte', prompt: 'Corrige et améliore la structure et l\'orthographe de ce texte :' },
+    { title: '💻 Déboguer ou écrire du code', prompt: 'Aide-moi à écrire une fonction en JavaScript pour :' },
+    { title: '💡 Trouver des idées innovantes', prompt: 'Donne-moi 5 idées créatives de projets web pour débuter cette année.' },
+    { title: '📊 Résumer un document ou fichier', prompt: 'Résume de manière claire et concise les points clés suivants :' }
   ];
 
   el.chips.innerHTML = '';
-  suggestions.forEach(({ icon, title, prompt }, i) => {
+  suggestions.forEach(({ title, prompt }) => {
     const b = document.createElement('button');
     b.className = 'chip';
-    b.style.animationDelay = 0.08 * i + 's';
-    b.innerHTML = `<span>${title}</span>${ic(icon)}`;
-    b.onclick = () => { el.input.value = prompt; autosize(); refreshSend(); el.input.focus(); };
+    b.textContent = title;
+    b.onclick = () => {
+      el.input.value = prompt + ' ';
+      autosize();
+      refreshSend();
+      el.input.focus();
+    };
     el.chips.appendChild(b);
   });
 
   chats = chats.filter((c) => c && Array.isArray(c.messages));
   if (!chats.find((c) => c.id === activeId)) activeId = null;
 
-  applyTheme();
+  applyTheme(localStorage.getItem('makasi.theme') || 'dark');
   renderHistory();
   renderMessages();
   refreshSend();
   initVoiceRecognition();
-  initPwaInstall();
 })();
-
-/* ---------- PWA Installation & Service Worker ---------- */
-function initPwaInstall() {
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    });
-  }
-
-  let deferredPrompt = null;
-  const sideBtn = $('installAppBtn');
-  const topBtn = $('topInstallBtn');
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    if (sideBtn) sideBtn.hidden = false;
-    if (topBtn) topBtn.hidden = false;
-  });
-
-  async function promptInstall() {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      if (choice && choice.outcome === 'accepted') {
-        toast('Application installée avec succès !');
-      }
-      deferredPrompt = null;
-      if (sideBtn) sideBtn.hidden = true;
-      if (topBtn) topBtn.hidden = true;
-    } else {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      if (isIOS) {
-        alert('Pour installer Makasi AI sur iPhone/iPad :\n\n1. Appuyez sur le bouton Partager ⎋ dans Safari.\n2. Sélectionnez "Sur l\'écran d\'accueil" ➕.');
-      } else {
-        toast('Utilisez l\'option "Installer" ou "Ajouter à l\'écran d\'accueil" de votre navigateur.');
-      }
-    }
-  }
-
-  if (sideBtn) sideBtn.addEventListener('click', promptInstall);
-  if (topBtn) topBtn.addEventListener('click', promptInstall);
-}
