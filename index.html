@@ -42,13 +42,22 @@
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
-  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.5"/><path d="m21 16-5-5-8 8"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5"/></symbol>
   <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 8-5 4 5 4M16 8l5 4-5 4M14 5l-4 14"/></symbol>
   <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 10h18M9 4v16"/></symbol>
   <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16zM13.5 6.5l4 4"/></symbol>
   <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
   <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 12.5-4.4M19 14v6M16 17h6"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5 4.25 4.25 0 0 1 17.5 18z"/></symbol>
+  <symbol id="i-cloud-check" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5 4.25 4.25 0 0 1 17.5 18z"/><path d="m9 13 2 2 4-4"/></symbol>
+  <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5 4.25 4.25 0 0 1 17.5 18zM3 3l18 18"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
 </defs></svg>
 
 <div class="app" id="app">
@@ -61,6 +70,14 @@
     <label class="search-box"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="search" type="search" placeholder="Rechercher" aria-label="Rechercher" autocomplete="off"></label>
     <nav class="history" id="history" aria-label="Historique"></nav>
     <div class="side-bottom">
+      <button class="account-card" id="accountBtn" aria-label="Compte et synchronisation">
+        <span class="account-avatar" id="accountAvatar">?</span>
+        <span class="account-meta">
+          <strong id="accountName">Se connecter</strong>
+          <small id="accountSub">Gardez vos mémoires</small>
+        </span>
+        <svg class="ic account-chevron"><use href="#i-chevron"/></svg>
+      </button>
       <button class="install-pwa-btn" id="installAppBtn" title="Installer Makasi AI sur votre téléphone ou PC" aria-label="Installer l'application"><svg class="ic"><use href="#i-download"/></svg><span>Installer l’app</span></button>
       <div class="side-bottom-row">
         <a class="credit" href="https://wa.me/243971404824" target="_blank" rel="noopener noreferrer">Alphonse Design</a>
@@ -121,7 +138,69 @@
   </main>
 </div>
 
+<!-- ============ Compte : connexion / création ============ -->
+<div class="modal" id="authModal" hidden aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <button class="icon-btn modal-close" id="authClose" aria-label="Fermer"><svg class="ic"><use href="#i-x"/></svg></button>
+    <div class="auth-brand">
+      <span class="auth-logo"><svg class="ic"><use href="#i-logo"/></svg></span>
+      <h2 id="authTitle">Votre mémoire Makasi</h2>
+      <p>Connectez-vous pour retrouver vos discussions sur le site et dans l’application mobile.</p>
+    </div>
+    <div class="auth-tabs" role="tablist">
+      <button type="button" class="auth-tab active" data-auth-tab="signin" role="tab">Connexion</button>
+      <button type="button" class="auth-tab" data-auth-tab="signup" role="tab">Créer un compte</button>
+    </div>
+    <form id="authForm" novalidate>
+      <label class="field" id="nameField" hidden>
+        <span>Nom ou pseudo</span>
+        <span class="field-wrap"><svg class="ic"><use href="#i-user"/></svg><input id="authName" type="text" autocomplete="name" placeholder="Alphonse" maxlength="50"></span>
+      </label>
+      <label class="field">
+        <span>E-mail</span>
+        <span class="field-wrap"><svg class="ic"><use href="#i-mail"/></svg><input id="authEmail" type="email" autocomplete="email" placeholder="vous@exemple.com" required></span>
+      </label>
+      <label class="field">
+        <span>Mot de passe</span>
+        <span class="field-wrap"><svg class="ic"><use href="#i-lock"/></svg><input id="authPassword" type="password" autocomplete="current-password" placeholder="6 caractères minimum" minlength="6" required></span>
+      </label>
+      <p class="auth-error" id="authError" hidden></p>
+      <p class="auth-info" id="authInfo" hidden></p>
+      <button class="auth-submit" id="authSubmit" type="submit"><span>Se connecter</span></button>
+    </form>
+    <button class="auth-link" id="forgotBtn" type="button">Mot de passe oublié ?</button>
+    <p class="auth-note"><svg class="ic"><use href="#i-cloud-check"/></svg> Vos discussions sont synchronisées et protégées par votre compte.</p>
+    <button class="auth-guest" id="authGuest" type="button">Continuer sans compte</button>
+  </div>
+</div>
+
+<!-- ============ Compte connecté ============ -->
+<div class="modal" id="profileModal" hidden aria-hidden="true">
+  <div class="modal-card profile-card" role="dialog" aria-modal="true" aria-labelledby="profileName">
+    <button class="icon-btn modal-close" id="profileClose" aria-label="Fermer"><svg class="ic"><use href="#i-x"/></svg></button>
+    <div class="profile-head">
+      <span class="account-avatar lg" id="profileAvatar">A</span>
+      <div>
+        <h2 id="profileName">Mon compte</h2>
+        <p id="profileEmail">—</p>
+      </div>
+    </div>
+    <div class="profile-state" id="profileSyncState">
+      <svg class="ic"><use href="#i-cloud-check"/></svg>
+      <span>Mémoire synchronisée</span>
+    </div>
+    <button class="profile-action" id="syncNowBtn" type="button">
+      <svg class="ic"><use href="#i-refresh"/></svg><span>Synchroniser maintenant</span>
+    </button>
+    <button class="profile-action danger" id="signOutBtn" type="button">
+      <svg class="ic"><use href="#i-logout"/></svg><span>Se déconnecter</span>
+    </button>
+    <p class="auth-note center">La déconnexion supprime la copie locale. Vos discussions restent dans votre compte.</p>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="cloud.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

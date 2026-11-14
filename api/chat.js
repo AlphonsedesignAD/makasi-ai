@@ -63,7 +63,7 @@ export default async function handler(req) {
   if (req.method !== 'POST') return json(405, { error: 'Méthode non autorisée.', code: 'method_not_allowed' });
 
   const keys = geminiKeys();
-  if (!keys.length) return json(500, { error: 'Clé Gemini non configurée.', code: 'unavailable' });
+  if (!keys.length) return json(500, { error: 'Le service Makasi n’est pas configuré.', code: 'unavailable' });
 
   let body;
   try {
@@ -115,7 +115,6 @@ export default async function handler(req) {
             'Content-Type': 'text/event-stream; charset=utf-8',
             'Cache-Control': 'no-cache, no-transform',
             'Access-Control-Allow-Origin': '*',
-            'X-Gemini-Model': model,
           },
         });
       }
@@ -128,10 +127,9 @@ export default async function handler(req) {
         return json(res.status, {
           error:
             res.status === 403 || res.status === 401
-              ? 'La clé Gemini a été refusée. Vérifiez-la dans les variables d’environnement Vercel.'
-              : 'La requête a été refusée par Gemini. Raccourcissez la conversation ou réessayez.',
+              ? 'Le service Makasi a refusé la requête. Réessayez dans un instant.'
+              : 'La demande a été refusée. Raccourcissez la conversation ou réessayez.',
           code: 'invalid_request',
-          detail: info.detail,
         });
       }
 
@@ -147,17 +145,15 @@ export default async function handler(req) {
   if (quotaInfo) {
     return json(429, {
       error:
-        "Le quota gratuit Gemini est atteint pour aujourd'hui sur tous les modèles disponibles. " +
-        (quotaInfo.retryAfter ? `Réessayez dans ${humanDelay(quotaInfo.retryAfter)} ` : 'Réessayez plus tard ') +
-        'ou activez la facturation sur votre projet Google AI.',
+        'La limite de Makasi est atteinte pour le moment. ' +
+        (quotaInfo.retryAfter ? `Réessayez dans ${humanDelay(quotaInfo.retryAfter)}.` : 'Réessayez plus tard.'),
       code: 'quota',
       retryAfter: quotaInfo.retryAfter || null,
     });
   }
 
   return json(503, {
-    error: 'Le service Gemini est momentanément indisponible. Réessayez dans quelques instants.',
+    error: 'Le service Makasi est momentanément indisponible. Réessayez dans quelques instants.',
     code: 'upstream',
-    detail: last?.detail,
   });
 }

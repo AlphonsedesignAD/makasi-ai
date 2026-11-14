@@ -1,0 +1,56 @@
+name: makasi_ai
+description: "Makasi AI — votre assistant personnel, avec mémoire synchronisée."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.6.0
+  shared_preferences: ^2.5.6
+  crypto: ^3.0.8
+  supabase_flutter: ^2.18.3
+  image_picker: ^1.2.4
+  file_picker: ^13.3.3
+  speech_to_text: ^7.4.0
+  flutter_tts: ^4.2.5
+  url_launcher: ^6.3.3
+  intl: ^0.20.3
+  path_provider: ^2.1.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/makasi_icon.png"
+  adaptive_icon_background: "#0F0F10"
+  adaptive_icon_foreground: "assets/icon/makasi_foreground.png"
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/icon/makasi_icon.png"
+    background_color: "#0F0F10"
+    theme_color: "#0F0F10"

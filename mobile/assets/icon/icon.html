@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body { margin: 0; width: 1024px; height: 1024px; overflow: hidden; background: #0F0F10; }
+    svg { display: block; }
+  </style>
+</head>
+<body>
+  <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+        <stop offset="0%" stop-color="#211D3A"/>
+        <stop offset="58%" stop-color="#14131C"/>
+        <stop offset="100%" stop-color="#0F0F10"/>
+      </radialGradient>
+      <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#4F46E5"/>
+        <stop offset="52%" stop-color="#7C3AED"/>
+        <stop offset="100%" stop-color="#EC4899"/>
+      </linearGradient>
+      <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+        <feDropShadow dx="0" dy="28" stdDeviation="34" flood-color="#7C3AED" flood-opacity="0.36"/>
+      </filter>
+    </defs>
+
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <rect x="224" y="224" width="576" height="576" rx="176" fill="url(#brand)" filter="url(#shadow)"/>
+    <path d="M 368 618 L 368 406 L 512 562 L 656 406 L 656 618"
+          fill="none" stroke="#FFFFFF" stroke-width="53"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</body>
+</html>

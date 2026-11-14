@@ -1,96 +1,104 @@
-# Makasi AI 🚀
+# Makasi AI
 
-Un assistant conversationnel intelligent propulsé par l'API Gemini, doté d'une interface moderne et de streaming en temps réel mot-par-mot.
+Assistant personnel avec une interface soignée, un streaming mot par mot, la dictée vocale, les pièces jointes et une **mémoire conservée dans l’application mobile**.
 
-## Structure du projet
+Le site et l’application utilisent le même serveur Makasi. Les clés du moteur d’IA restent uniquement côté serveur.
+
+## Architecture
 
 ```text
 makasi-ai/
 ├── api/
-│   ├── _keys.js       # Lecture des clés Gemini (1 à N clés)
-│   ├── chat.js        # Chat texte (Gemini, streaming, repli multi-modèles)
-│   └── image.js       # Génération d'images (serveur, repli multi-modèles)
-├── index.html         # Interface utilisateur
-├── style.css          # Design soigné & responsive avec animations
-├── app.js             # Logique frontend (SSE streaming)
-├── vercel.json        # Configuration de routage Vercel
-├── .env.example       # Modèle de variables d'environnement
-└── .gitignore         # Empêche la publication des secrets (.env)
+│   ├── _keys.js        # Lecture des clés serveur (1 à N clés)
+│   ├── chat.js         # Chat en streaming
+│   └── config.js       # Configuration publique
+├── index.html          # Site web
+├── style.css
+├── app.js              # Logique du site
+├── cloud.js            # Comptes web (optionnel)
+├── supabase/
+│   └── schema.sql      # Tables et sécurité (site web)
+├── mobile/             # Application Flutter (Android, iOS, Web)
+├── vercel.json
+└── .env.example
 ```
 
-## Déploiement sur Vercel
+- **Web** : HTML/CSS/JavaScript, hébergé sur Vercel.
+- **Mobile** : Flutter/Dart, dans `mobile/`.
+- **Compte mobile** : simple, enregistré sur le téléphone, avec export des conversations.
+- **IA** : uniquement appelée par les fonctions serverless Vercel. Aucune clé n’est envoyée au navigateur ni au téléphone.
 
-1. Poussez ce dossier sur un dépôt GitHub (privé ou public).
-2. Rendez-vous sur [vercel.com](https://vercel.com) et cliquez sur **Add New > Project**.
-3. Importez votre dépôt GitHub.
-4. Dans la section **Environment Variables**, ajoutez :
-   - **Key** : `GEMINI_API_KEY`
-   - **Value** : votre clé API Gemini (ex: `AQ.Ab8...` ou `AIza...`)
-5. Cliquez sur **Deploy**.
+## Application mobile
 
-Votre site sera en ligne et votre clé d'API restera 100% sécurisée côté serveur, invisible pour les visiteurs et absente de GitHub !
-
-## Images
-
-Tapez par exemple « génère une image de … » ou `/image …`. La génération passe par `/api/image` (plus fiable que l'appel direct depuis le navigateur).
-
-- **Formats** : `1:1`, `16:9`, `9:16`, `4:3`, `3:4`. Le format est déduit de la phrase (« en portrait », « format 16:9 », « paysage »…) et reste modifiable sous l'image.
-- **Styles** : photo, illustration, 3D, anime, logo — déduits de la phrase ou passés via `style`.
-- **Moteur** : Gemini Image (`gemini-3.1-flash-image` → `gemini-3-pro-image` → `gemini-2.5-flash-image`).
-- **Quota** : la génération d'images Gemini nécessite un projet Google AI avec facturation activée. Sans facturation, l'API renvoie `429 RESOURCE_EXHAUSTED` et l'interface affiche un message explicite.
-
-### API
-
-```http
-GET  /api/image?prompt=un%20chat&ratio=16:9&style=photo&seed=42
-POST /api/image   { "prompt": "un chat", "ratio": "16:9", "style": "photo", "seed": 42 }
-```
-
-Réponse : l'image binaire (`image/png` ou `image/jpeg`), avec les en-têtes `X-Image-Source` et `X-Image-Ratio`. En cas d'échec : JSON `{ "error": "…", "code": "quota|blocked|unavailable|invalid_request" }`.
-
-## Plusieurs clés API Gemini
-
-Le quota gratuit est journalier **et par modèle, pour chaque projet Google**. Ajouter une deuxième clé (créée sur un autre projet Google AI) multiplie donc le quota disponible.
-
-### En local (`.env`)
-
-Deux formats sont acceptés, au choix :
+L’application se trouve dans [`mobile/`](mobile/). Voir le guide détaillé : [`mobile/README.md`](mobile/README.md).
 
 ```bash
-# Format 1 — une variable par clé
-GEMINI_API_KEY=AQ.premiere_cle
-GEMINI_API_KEY_2=AQ.deuxieme_cle
-GEMINI_API_KEY_3=AQ.troisieme_cle
+cd mobile
+flutter pub get
+flutter run
 ```
 
+L’application utilise par défaut `https://makasi-ai.vercel.app`. Pour tester un serveur local :
+
 ```bash
-# Format 2 — une seule variable, clés séparées par des virgules
-GEMINI_API_KEYS=AQ.premiere_cle,AQ.deuxieme_cle,AQ.troisieme_cle
+flutter run --dart-define=MAKASI_API_BASE=http://10.0.2.2:3000
 ```
 
-Les deux formats peuvent être combinés. Les clés en double sont ignorées.
+### Compte et conversations
 
-### Sur Vercel
+- L’utilisateur crée un **compte simple** : nom, e-mail et mot de passe.
+- Le compte et les conversations restent **sur le téléphone**, dans l’application.
+- Si l’application est désinstallée, le compte et les conversations sont perdus.
+- L’application propose donc **« Enregistrer mes conversations »** : un fichier Markdown est créé et peut être conservé avant la désinstallation.
+- Sans compte, le mode invité fonctionne aussi, avec les conversations sur l’appareil.
 
-**Settings → Environment Variables** : ajoutez `GEMINI_API_KEY_2` (puis `GEMINI_API_KEY_3`, …) avec vos autres clés, pour **Production** et **Preview**, puis **Redeploy**.
+## Déployer le site sur Vercel
 
-L'application utilise les clés dans l'ordre et passe automatiquement à la suivante quand une clé est refusée ou que ses modèles sont épuisés.
-
-## Quotas Gemini
-
-Le quota gratuit Gemini est **journalier et par modèle**. Makasi AI en tient compte :
-
-- le chat **bascule automatiquement** vers un autre modèle quand le modèle courant est épuisé (liste : `gemini-3.5-flash-lite`, `gemini-2.5-flash-lite`, `gemini-2.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.5-flash`) ;
-- un modèle en quota atteint est mis de côté pendant quelques heures pour ne pas gaspiller d'appels ;
-- si **tous** les modèles et toutes les clés sont épuisés, l'interface affiche un message lisible avec le délai avant nouvel essai — jamais le JSON brut de Google ;
-- ajoutez `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3`… (ou `GEMINI_API_KEYS`) pour multiplier le quota.
-
-La génération d'**images** reste soumise à la facturation Google AI (quota gratuit à 0).
-
-## Test en local
+1. Poussez le dépôt sur GitHub.
+2. Importez le dépôt sur [vercel.com](https://vercel.com).
+3. Dans **Settings > Environment Variables**, ajoutez pour **Production** et **Preview** :
 
 ```bash
+# Moteur d’IA (côté serveur uniquement)
+GEMINI_API_KEY=votre_cle_serveur
+```
+
+4. Déployez, puis vérifiez `https://votre-site.vercel.app/api/config`.
+
+`GEMINI_API_KEY` est le nom technique attendu par le serveur. Cette valeur n’est jamais exposée au client. Des clés de secours peuvent être ajoutées avec `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3`… ou `GEMINI_API_KEYS`.
+
+## Comptes web (optionnel)
+
+Le site peut proposer des comptes synchronisés via Supabase :
+
+1. Créez un projet sur [supabase.com](https://supabase.com).
+2. Ouvrez **SQL Editor** et exécutez [`supabase/schema.sql`](supabase/schema.sql).
+3. Ajoutez `SUPABASE_URL` et `SUPABASE_ANON_KEY` sur Vercel.
+4. Vérifiez `https://votre-site.vercel.app/api/config`.
+
+Ces deux valeurs sont publiques et servies aux clients par `/api/config`. Ne mettez jamais la clé `service_role` dans le projet.
+
+## Développement local
+
+```bash
+npm install -g vercel
 vercel dev
 ```
 
-`vercel dev` sert le site et les fonctions (`/api/chat`, `/api/image`) avec le fichier `.env`.
+`vercel dev` sert le site et les fonctions `/api/chat` et `/api/config` avec le fichier `.env`.
+
+Pour vérifier la syntaxe JavaScript :
+
+```bash
+node --check app.js
+node --check cloud.js
+node --check api/chat.js
+node --check api/config.js
+```
+
+## Sécurité
+
+- `.env` est ignoré par Git et ne doit jamais être commité.
+- Les clés du moteur d’IA ne quittent pas le serveur.
+- La génération d’images a été retirée du site et de l’application.
+- Les conversations du téléphone ne sont pas envoyées à un serveur de comptes.

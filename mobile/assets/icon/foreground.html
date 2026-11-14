@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body { margin: 0; width: 1024px; height: 1024px; overflow: hidden; background: transparent; }
+    svg { display: block; }
+  </style>
+</head>
+<body>
+  <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#4F46E5"/>
+        <stop offset="52%" stop-color="#7C3AED"/>
+        <stop offset="100%" stop-color="#EC4899"/>
+      </linearGradient>
+      <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+        <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#7C3AED" flood-opacity="0.34"/>
+      </filter>
+    </defs>
+
+    <rect x="238" y="238" width="548" height="548" rx="168" fill="url(#brand)" filter="url(#shadow)"/>
+    <path d="M 375 616 L 375 414 L 512 562 L 649 414 L 649 616"
+          fill="none" stroke="#FFFFFF" stroke-width="51"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</body>
+</html>

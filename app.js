@@ -19,7 +19,6 @@ RÈGLES DE CONVERSATION :
 4. Lorsque l'utilisateur joint un fichier ou du code, analyse-le attentivement, résume-le ou réponds précisément aux instructions demandées sur ce document.
 
 5. Adapte-toi toujours à la langue de l'utilisateur (français, lingala, swahili, anglais...).`,
-  IMAGE_URL: '/api/image',
   MAX_HISTORY: 20
 };
 
@@ -55,7 +54,14 @@ const el = {
   micBtn: $('micBtn'), voiceBar: $('voiceBar'), voiceText: $('voiceText'), cancelVoice: $('cancelVoice'),
   exportChatBtn: $('exportChatBtn'), attachBtn: $('attachBtn'), fileInput: $('fileInput'),
   filePreviewBar: $('filePreviewBar'), fileName: $('fileName'), fileSize: $('fileSize'),
-  fileIcon: $('fileIcon'), removeFileBtn: $('removeFileBtn')
+  fileIcon: $('fileIcon'), removeFileBtn: $('removeFileBtn'),
+  accountBtn: $('accountBtn'), accountAvatar: $('accountAvatar'), accountName: $('accountName'), accountSub: $('accountSub'),
+  authModal: $('authModal'), authClose: $('authClose'), authForm: $('authForm'), authName: $('authName'),
+  authEmail: $('authEmail'), authPassword: $('authPassword'), authError: $('authError'), authInfo: $('authInfo'),
+  authSubmit: $('authSubmit'), nameField: $('nameField'), forgotBtn: $('forgotBtn'), authGuest: $('authGuest'),
+  profileModal: $('profileModal'), profileClose: $('profileClose'), profileAvatar: $('profileAvatar'),
+  profileName: $('profileName'), profileEmail: $('profileEmail'), profileSyncState: $('profileSyncState'),
+  syncNowBtn: $('syncNowBtn'), signOutBtn: $('signOutBtn')
 };
 
 const KEY = 'makasi.chats', KEY_ACTIVE = 'makasi.active';
@@ -78,6 +84,7 @@ function save() {
   } catch {
     toast('Stockage plein : supprimez d’anciennes discussions.');
   }
+  scheduleCloudPush();
 }
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -88,44 +95,6 @@ function toast(msg) {
   el.toast.classList.add('show');
   clearTimeout(toast.t);
   toast.t = setTimeout(() => el.toast.classList.remove('show'), 2200);
-}
-
-/* ---------- Détection et Extraction des Requêtes d'Images ---------- */
-function isImageRequest(text) {
-  const t = (text || '').toLowerCase().trim();
-  if (/^\/(image|img)\b/.test(t)) return true;
-  if (/docker|conteneur|container|\biso\b|code\b|python|javascript/.test(t)) return false;
-  return /\b(g[ée]n[èe]re[rz]?|cr[ée]+[rz]?|dessine[rz]?|fais|produis|generate|draw|create|make)\b[^.!?\n]{0,25}\b(image|photo|illustration|dessin|picture)\b/.test(t);
-}
-
-function extractImagePrompt(text) {
-  const c = text.replace(/^\/(image|img)\s*/i, '')
-    .replace(/^.*?\b(image|photo|illustration|dessin|picture)s?\b\s*(?:de |d'|du |des |sur |of |:)?\s*/i, '').trim();
-  return c || text;
-}
-
-/* Format demandé dans la phrase (16:9, portrait, paysage…) */
-function detectImageRatio(text) {
-  const t = (text || '').toLowerCase();
-  if (/\b16\s*[:/x]\s*9\b/.test(t)) return '16:9';
-  if (/\b9\s*[:/x]\s*16\b/.test(t)) return '9:16';
-  if (/\b4\s*[:/x]\s*3\b/.test(t)) return '4:3';
-  if (/\b3\s*[:/x]\s*4\b/.test(t)) return '3:4';
-  if (/\b(carr[ée]|square|1\s*[:/x]\s*1)\b/.test(t)) return '1:1';
-  if (/\b(paysage|horizontal|landscape|banni[èe]re|banner|wide)\b/.test(t)) return '16:9';
-  if (/\b(portrait|vertical|story|stories|tiktok|r[ée]el)\b/.test(t)) return '9:16';
-  return '1:1';
-}
-
-/* Style demandé (photo, illustration, 3D, anime, logo) */
-function detectImageStyle(text) {
-  const t = (text || '').toLowerCase();
-  if (/\b(logo|ic[ôo]ne|icon|embl[èe]me)\b/.test(t)) return 'logo';
-  if (/\b(anime|manga|cartoon|dessin anim[ée])\b/.test(t)) return 'anime';
-  if (/\b(3d|rendu|render)\b/.test(t)) return '3d';
-  if (/\b(illustration|dessin|aquarelle|peinture|art|drawing|painting)\b/.test(t)) return 'illustration';
-  if (/\b(photo|photor[ée]aliste|r[ée]aliste|realistic)\b/.test(t)) return 'photo';
-  return '';
 }
 
 /* ---------- Markdown léger & soigné ---------- */
@@ -275,92 +244,6 @@ function toggleSpeech(text, btn) {
   window.speechSynthesis.speak(utter);
 }
 
-/* ---------- Images générées ---------- */
-const IMAGE_RATIOS = ['1:1', '16:9', '9:16', '4:3', '3:4'];
-const imgCache = new Map();
-
-function fetchImage({ prompt, seed, ratio, style }, onStatus) {
-  const key = [prompt, seed, ratio, style].join('|');
-  if (imgCache.has(key)) return imgCache.get(key);
-  const p = (async () => {
-    let lastErr = null;
-    for (let i = 0; i < 2; i++) {
-      if (i) {
-        if (onStatus) onStatus('Nouvel essai…');
-        await new Promise((res) => setTimeout(res, 1500));
-      }
-      try {
-        const r = await fetch(CONFIG.IMAGE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, seed, ratio, style }),
-        });
-        const type = (r.headers.get('content-type') || '').split(';')[0];
-        if (r.ok && type.startsWith('image/')) {
-          const b = await r.blob();
-          return { url: URL.createObjectURL(b), mime: b.type || type };
-        }
-        let msg = '';
-        try { msg = (await r.json())?.error || ''; } catch (_) {}
-        lastErr = new Error(msg || `Erreur ${r.status}`);
-        // Erreur définitive (demande invalide, sécurité…) : inutile de réessayer.
-        if (r.status < 500) break;
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-    throw lastErr || new Error('L’image n’a pas pu être créée.');
-  })();
-  imgCache.set(key, p);
-  p.catch(() => imgCache.delete(key));
-  return p;
-}
-
-function imageCard(img) {
-  const ratio = img.ratio || '1:1';
-  const ratios = IMAGE_RATIOS.map(
-    (r) => `<button type="button" data-ratio="${r}" aria-pressed="${r === ratio}">${r}</button>`
-  ).join('');
-  return `<figure class="imgcard" data-state="loading" data-prompt="${esc(img.prompt)}" data-seed="${img.seed}" data-ratio="${ratio}" data-style="${esc(img.style || '')}">
-    <div class="imgframe" style="--ratio:${ratio.replace(':', '/')}"><img alt="${esc(img.prompt)}" loading="lazy">
-      <div class="imgph"><span>Création de l’image…</span></div>
-      <div class="imgerr"><span>L’image n’a pas pu être créée.</span><button type="button" data-img="regen">${ic('refresh')} Réessayer</button></div>
-    </div>
-    <figcaption>
-      <div class="imgratios" role="group" aria-label="Format de l’image">${ratios}</div>
-      <span class="cap">${esc(img.prompt)}</span>
-      <button type="button" class="icon-btn sm" data-img="regen" title="Nouvelle variante" aria-label="Nouvelle variante">${ic('refresh')}</button>
-      <a class="icon-btn sm" data-img="dl" download="makasi-image.png" title="Télécharger" aria-label="Télécharger">${ic('download')}</a>
-    </figcaption></figure>`;
-}
-
-function hydrate(card) {
-  const { prompt, style } = card.dataset;
-  const seed = +card.dataset.seed;
-  const ratio = card.dataset.ratio || '1:1';
-  const st = card.querySelector('.imgph span');
-  const err = card.querySelector('.imgerr span');
-  card.dataset.state = 'loading';
-  st.textContent = 'Création de l’image…';
-  const slow = setTimeout(() => {
-    if (card.dataset.state === 'loading') st.textContent = 'Encore quelques secondes…';
-  }, 9000);
-
-  fetchImage({ prompt, seed, ratio, style }, (m) => { if (m) st.textContent = m; })
-    .then(({ url, mime }) => {
-      card.querySelector('img').src = url;
-      const dl = card.querySelector('[data-img="dl"]');
-      dl.href = url;
-      dl.download = 'makasi-image.' + (/jpeg|jpg/.test(mime) ? 'jpg' : /webp/.test(mime) ? 'webp' : 'png');
-      card.dataset.state = 'ready';
-    })
-    .catch((e) => {
-      err.textContent = e?.message || 'L’image n’a pas pu être créée.';
-      card.dataset.state = 'error';
-    })
-    .finally(() => clearTimeout(slow));
-}
-
 /* ---------- Rendu des Messages ---------- */
 function msgNode(m, idx) {
   const d = document.createElement('div');
@@ -379,15 +262,13 @@ function msgNode(m, idx) {
       <div class="avatar">${ic('logo')}</div>
       <div class="content-wrap">
         <div class="body"></div>
-        ${m.image ? '' : `<div class="actions">
+        <div class="actions">
           <button data-act="copy" title="Copier" aria-label="Copier">${ic('copy')}</button>
           <button data-act="speak" title="Écouter" aria-label="Écouter">${ic('speaker')}</button>
           <button data-act="retry" title="Régénérer" aria-label="Régénérer">${ic('refresh')}</button>
-        </div>`}
+        </div>
       </div>`;
-    d.querySelector('.body').innerHTML =
-      (m.image ? imageCard(m.image) : '') +
-      md(m.content || '');
+    d.querySelector('.body').innerHTML = md(m.content || '');
   }
   return d;
 }
@@ -399,7 +280,6 @@ function renderMessages() {
   el.title.textContent = c && c.title ? c.title : 'Makasi AI';
   document.title = c && c.title ? c.title + ' · Makasi AI' : 'Makasi AI';
   if (c) c.messages.forEach((m, i) => el.messages.appendChild(msgNode(m, i)));
-  el.messages.querySelectorAll('.imgcard[data-state="loading"]').forEach(hydrate);
   scrollDown(false);
 }
 
@@ -489,8 +369,7 @@ function exportCurrentChat() {
   }
   let mdContent = `# ${c.title || 'Discussion Makasi AI'}\n\n`;
   c.messages.forEach(m => {
-    let body = m.displayText || m.content;
-    if (m.image) body = `[Image générée : ${m.image.prompt}]`;
+    const body = m.displayText || m.content;
     mdContent += `### ${m.role === 'user' ? 'Vous' : 'Makasi AI'}\n\n${body}\n\n---\n\n`;
   });
 
@@ -608,22 +487,6 @@ function refreshSend() {
 }
 
 async function ask(c) {
-  const last = c.messages[c.messages.length - 1];
-  const lastText = last ? (last.displayText || last.content || '') : '';
-
-  // Demande d'image : génération dédiée, sans passer par le chat texte
-  if (last && !last.attachment && isImageRequest(lastText)) {
-    const prompt = extractImagePrompt(lastText);
-    c.messages.push({
-      role: 'assistant',
-      content: '',
-      image: { prompt, seed: rnd(), ratio: detectImageRatio(lastText), style: detectImageStyle(lastText) },
-    });
-    c.updated = Date.now();
-    save(); renderMessages(); renderHistory(); scrollDown();
-    return;
-  }
-
   setBusy(true);
   const holder = document.createElement('div');
   holder.className = 'msg bot';
@@ -636,7 +499,7 @@ async function ask(c) {
   let fullText = '';
 
   try {
-    const history = c.messages.filter((m) => !m.error && !m.image).slice(-CONFIG.MAX_HISTORY)
+    const history = c.messages.filter((m) => !m.error).slice(-CONFIG.MAX_HISTORY)
       .map((m) => ({ role: m.role, parts: m.parts || [{ text: m.content || '' }] }));
 
     const { headers, body } = buildRequest(history);
@@ -648,7 +511,7 @@ async function ask(c) {
         const errJson = await res.json();
         friendly = typeof errJson?.error === 'string' ? errJson.error : errJson?.error?.message || '';
       } catch (_) {}
-      const err = new Error(friendly || `Le service Gemini est indisponible (erreur ${res.status}).`);
+      const err = new Error(friendly || `Le service Makasi est indisponible (erreur ${res.status}).`);
       err.friendly = true;
       throw err;
     }
@@ -881,34 +744,6 @@ el.messages.addEventListener('click', async (e) => {
     return;
   }
 
-  const ratioBtn = e.target.closest('.imgratios [data-ratio]');
-  if (ratioBtn) {
-    const card = ratioBtn.closest('.imgcard');
-    const ratio = ratioBtn.dataset.ratio;
-    if (card && ratio && ratio !== card.dataset.ratio) {
-      const c = active(), m = c && c.messages[+card.closest('.msg')?.dataset.idx];
-      card.dataset.ratio = ratio;
-      card.querySelector('.imgframe').style.setProperty('--ratio', ratio.replace(':', '/'));
-      card.querySelectorAll('.imgratios [data-ratio]').forEach((b) => b.setAttribute('aria-pressed', String(b === ratioBtn)));
-      card.dataset.seed = rnd();
-      if (m && m.image) { m.image.ratio = ratio; m.image.seed = +card.dataset.seed; save(); }
-      hydrate(card);
-    }
-    return;
-  }
-
-  const imgBtn = e.target.closest('[data-img]');
-  if (imgBtn) {
-    const card = imgBtn.closest('.imgcard');
-    if (card && imgBtn.dataset.img === 'regen') {
-      const c = active(), m = c && c.messages[+card.closest('.msg')?.dataset.idx];
-      card.dataset.seed = rnd();
-      if (m && m.image) { m.image.seed = +card.dataset.seed; save(); }
-      hydrate(card);
-    }
-    return;
-  }
-
   const b = e.target.closest('[data-act]');
   if (!b || busy) return;
   const c = active();
@@ -947,13 +782,317 @@ $('themeBtn').onclick = () => {
   applyTheme(next);
 };
 
+/* ============================================================
+   COMPTES & MÉMOIRE PARTAGÉE (site <-> application mobile)
+   ============================================================ */
+const cloud = window.MakasiCloud || null;
+let cloudUser = null;
+let cloudConfigured = false;
+let cloudSyncing = false;
+let suppressCloud = false;
+let cloudPushTimer = null;
+let lastCloudPull = 0;
+let authMode = 'signin';
+
+function openModal(modal) {
+  if (!modal) return;
+  modal.hidden = false;
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(modal) {
+  if (!modal) return;
+  modal.hidden = true;
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+function cloudName() {
+  if (!cloud || !cloudUser) return '';
+  return cloud.displayName() || cloudUser.email || 'Mon compte';
+}
+
+function renderAccount() {
+  if (!el.accountName) return;
+  const guest = !cloudUser;
+  const label = guest ? 'Se connecter' : cloudName();
+  el.accountAvatar.textContent = guest ? '?' : label.trim().charAt(0).toUpperCase();
+  el.accountAvatar.classList.toggle('guest', guest);
+  el.accountName.textContent = guest ? 'Se connecter' : label;
+  el.accountSub.textContent = guest
+    ? 'Gardez vos mémoires'
+    : cloudSyncing ? 'Synchronisation…' : 'Mémoire synchronisée';
+
+  if (el.profileAvatar) {
+    el.profileAvatar.textContent = label.trim().charAt(0).toUpperCase() || 'A';
+    el.profileName.textContent = label || 'Mon compte';
+    el.profileEmail.textContent = cloudUser?.email || '—';
+    setProfileState(cloudSyncing ? 'syncing' : 'idle');
+  }
+}
+
+function setProfileState(state, message) {
+  if (!el.profileSyncState) return;
+  el.profileSyncState.classList.toggle('syncing', state === 'syncing');
+  el.profileSyncState.classList.toggle('error', state === 'error');
+  const icon = state === 'error'
+    ? '<use href="#i-cloud-off"/>'
+    : state === 'syncing'
+      ? '<use href="#i-cloud"/>'
+      : '<use href="#i-cloud-check"/>';
+  const text = message || (state === 'syncing'
+    ? 'Synchronisation en cours…'
+    : state === 'error'
+      ? 'Synchronisation impossible'
+      : 'Mémoire synchronisée');
+  el.profileSyncState.innerHTML = `<svg class="ic">${icon}</svg><span>${esc(text)}</span>`;
+}
+
+/* Envoie les changements locaux vers le cloud (groupés). */
+function scheduleCloudPush() {
+  if (!cloud || !cloudUser || suppressCloud) return;
+  clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(async () => {
+    if (!cloudUser || suppressCloud) return;
+    cloudSyncing = true;
+    renderAccount();
+    try {
+      await cloud.pushChats(chats);
+      localStorage.setItem('makasi.lastSync', String(Date.now()));
+      lastCloudPull = Date.now();
+    } catch (e) {
+      console.warn('[Makasi cloud]', e);
+      setProfileState('error', 'Synchronisation impossible');
+    } finally {
+      cloudSyncing = false;
+      renderAccount();
+    }
+  }, 1200);
+}
+
+/* Fusionne la mémoire locale et la mémoire du compte. */
+async function syncCloud({ initial = false } = {}) {
+  if (!cloud || !cloudUser || cloudSyncing) return;
+  if (busy && !initial) return;
+
+  cloudSyncing = true;
+  renderAccount();
+  try {
+    const last = Number(localStorage.getItem('makasi.lastSync') || 0);
+    const result = await cloud.pullAndMerge(chats, last);
+
+    suppressCloud = true;
+    chats = result.chats;
+    if (!chats.find((c) => c.id === activeId)) activeId = chats.length ? chats[0].id : null;
+    save();
+    suppressCloud = false;
+
+    localStorage.setItem('makasi.lastSync', String(Date.now()));
+    lastCloudPull = Date.now();
+    renderHistory();
+    renderMessages();
+    if (!initial && result.pushed) toast('Mémoire synchronisée.');
+  } catch (e) {
+    console.warn('[Makasi cloud]', e);
+    if (!initial) toast(e.message || 'Synchronisation impossible.');
+    setProfileState('error', 'Synchronisation impossible');
+  } finally {
+    cloudSyncing = false;
+    renderAccount();
+  }
+}
+
+/* ---------- Authentification ---------- */
+function setAuthMode(mode) {
+  authMode = mode;
+  document.querySelectorAll('.auth-tab').forEach((b) => {
+    const active = b.dataset.authTab === mode;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', String(active));
+  });
+  el.nameField.hidden = mode !== 'signup';
+  el.forgotBtn.hidden = mode !== 'signin';
+  el.authPassword.setAttribute('autocomplete', mode === 'signup' ? 'new-password' : 'current-password');
+  el.authSubmit.querySelector('span').textContent = mode === 'signup' ? 'Créer mon compte' : 'Se connecter';
+  el.authError.hidden = true;
+  el.authInfo.hidden = true;
+}
+
+function setAuthBusy(loading) {
+  el.authSubmit.disabled = loading;
+  const label = authMode === 'signup' ? 'Créer mon compte' : 'Se connecter';
+  el.authSubmit.innerHTML = loading
+    ? `<span class="spinner"></span> <span>Un instant…</span>`
+    : `<span>${label}</span>`;
+}
+
+function authError(message) {
+  el.authError.textContent = message;
+  el.authError.hidden = false;
+  el.authInfo.hidden = true;
+}
+
+function authInfo(message) {
+  el.authInfo.textContent = message;
+  el.authInfo.hidden = false;
+  el.authError.hidden = true;
+}
+
+function friendlyAuthError(err) {
+  const m = String(err?.message || '');
+  if (/invalid login credentials/i.test(m)) return 'E-mail ou mot de passe incorrect.';
+  if (/user already registered|already been registered/i.test(m)) return 'Un compte existe déjà avec cet e-mail. Connectez-vous.';
+  if (/email not confirmed/i.test(m)) return 'Confirmez votre e-mail (lien reçu dans votre boîte) avant de vous connecter.';
+  if (/password.*(6|six).*characters|password is too short/i.test(m)) return 'Le mot de passe doit contenir au moins 6 caractères.';
+  if (/invalid.*email|email.*invalid/i.test(m)) return 'Cette adresse e-mail n’est pas valide.';
+  if (/rate limit|too many|429/i.test(m)) return 'Trop de tentatives. Patientez un instant puis réessayez.';
+  if (/fetch|network|connexion impossible/i.test(m)) return 'Connexion impossible. Vérifiez votre réseau.';
+  return m || 'Une erreur est survenue. Réessayez.';
+}
+
+function openAuthModal() {
+  setAuthMode(authMode);
+  if (!cloudConfigured) {
+    authInfo('Le service de comptes n’est pas encore activé sur le serveur. Ajoutez SUPABASE_URL et SUPABASE_ANON_KEY sur Vercel, puis redéployez. En attendant, vous pouvez continuer sans compte.');
+  }
+  openModal(el.authModal);
+  setTimeout(() => el.authEmail.focus(), 120);
+}
+
+function openProfileModal() {
+  if (!cloudUser) return openAuthModal();
+  renderAccount();
+  openModal(el.profileModal);
+}
+
+function closeAuthModal() { closeModal(el.authModal); }
+
+/* ---------- Initialisation du cloud ---------- */
+async function initCloud() {
+  if (!cloud) { renderAccount(); return; }
+
+  el.accountBtn.addEventListener('click', () => {
+    if (cloudUser) openProfileModal();
+    else openAuthModal();
+  });
+  el.authClose.addEventListener('click', closeAuthModal);
+  el.authGuest.addEventListener('click', closeAuthModal);
+  el.authModal.addEventListener('click', (e) => { if (e.target === el.authModal) closeAuthModal(); });
+  el.profileClose.addEventListener('click', () => closeModal(el.profileModal));
+  el.profileModal.addEventListener('click', (e) => { if (e.target === el.profileModal) closeModal(el.profileModal); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    closeAuthModal();
+    closeModal(el.profileModal);
+  });
+
+  document.querySelectorAll('.auth-tab').forEach((b) => {
+    b.addEventListener('click', () => setAuthMode(b.dataset.authTab));
+  });
+
+  el.authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = el.authEmail.value.trim();
+    const password = el.authPassword.value;
+    const name = el.authName.value.trim();
+
+    if (!email) return authError('Indiquez votre adresse e-mail.');
+    if (!password || password.length < 6) return authError('Le mot de passe doit contenir au moins 6 caractères.');
+    if (authMode === 'signup' && name.length < 2) return authError('Indiquez un nom (2 caractères minimum).');
+
+    setAuthBusy(true);
+    try {
+      if (authMode === 'signup') {
+        const result = await cloud.signUp({ email, password, name });
+        if (result.needsConfirmation) {
+          authInfo('Compte créé ! Vérifiez votre boîte mail, cliquez sur le lien de confirmation, puis connectez-vous.');
+          setAuthMode('signin');
+          el.authEmail.value = email;
+          authInfo('Compte créé ! Vérifiez votre boîte mail puis connectez-vous.');
+          return;
+        }
+        toast('Compte créé, bienvenue !');
+      } else {
+        await cloud.signIn({ email, password });
+        toast('Content de vous revoir !');
+      }
+
+      cloudUser = cloud.user();
+      cloudConfigured = true;
+      closeAuthModal();
+      renderAccount();
+      await syncCloud({ initial: true });
+    } catch (err) {
+      console.warn('[Makasi auth]', err);
+      authError(friendlyAuthError(err));
+    } finally {
+      setAuthBusy(false);
+    }
+  });
+
+  el.forgotBtn.addEventListener('click', async () => {
+    const email = el.authEmail.value.trim();
+    if (!email) return authError('Indiquez d’abord votre adresse e-mail.');
+    try {
+      await cloud.resetPassword(email);
+      authInfo('Lien envoyé ! Consultez votre boîte mail pour choisir un nouveau mot de passe.');
+    } catch (err) {
+      authError(friendlyAuthError(err));
+    }
+  });
+
+  el.syncNowBtn.addEventListener('click', async () => {
+    await syncCloud();
+    setProfileState(cloudSyncing ? 'syncing' : 'idle');
+  });
+
+  el.signOutBtn.addEventListener('click', async () => {
+    if (!confirm('Se déconnecter ?\n\nVos discussions restent dans votre compte, mais la copie locale sera supprimée de cet appareil.')) return;
+    await cloud.signOut();
+    cloudUser = null;
+    suppressCloud = true;
+    chats = [];
+    activeId = null;
+    save();
+    suppressCloud = false;
+    renderHistory();
+    renderMessages();
+    closeModal(el.profileModal);
+    renderAccount();
+    toast('Vous êtes déconnecté.');
+    openAuthModal();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (!cloudUser || busy || cloudSyncing) return;
+    if (Date.now() - lastCloudPull < 60_000) return;
+    syncCloud();
+  });
+
+  window.addEventListener('online', () => {
+    if (cloudUser && !busy) syncCloud();
+  });
+
+  try {
+    const info = await cloud.init();
+    cloudConfigured = !!info?.configured;
+    cloudUser = info?.user || null;
+    renderAccount();
+    if (cloudUser) await syncCloud({ initial: true });
+  } catch (e) {
+    console.warn('[Makasi cloud]', e);
+    renderAccount();
+  }
+}
+
 /* ---------- Démarrage & Suggestions Normales ---------- */
 (function init() {
   const h = new Date().getHours();
   el.greeting.textContent = h < 5 ? 'Bonne nuit !' : h < 18 ? 'Bonjour !' : 'Bonsoir !';
 
   const suggestions = [
-    { icon: 'image', title: 'Créer une image', prompt: 'Génère une image de ' },
     { icon: 'pen', title: 'Écrire ou corriger un texte', prompt: 'Corrige et améliore ce texte : ' },
     { icon: 'code', title: 'Écrire ou déboguer du code', prompt: 'Aide-moi à écrire une fonction JavaScript qui ' },
     { icon: 'bulb', title: 'Trouver des idées', prompt: 'Donne-moi 5 idées originales de projets web.' }
@@ -978,6 +1117,7 @@ $('themeBtn').onclick = () => {
   refreshSend();
   initVoiceRecognition();
   initPwaInstall();
+  initCloud();
 })();
 
 /* ---------- PWA Installation & Service Worker ---------- */
