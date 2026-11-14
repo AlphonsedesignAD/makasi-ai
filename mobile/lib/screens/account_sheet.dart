@@ -38,38 +38,11 @@ class _AccountSheetState extends State<AccountSheet> {
   }
 
   Future<void> _rename(AppController controller) async {
-    final text = TextEditingController(text: controller.userName);
     final name = await showDialog<String>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Votre nom'),
-          content: TextField(
-            controller: text,
-            autofocus: true,
-            maxLength: 60,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              hintText: 'Nom affiché dans Makasi',
-              counterText: '',
-            ),
-            onSubmitted: (value) => Navigator.of(context).pop(value),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(text.text),
-              child: const Text('Enregistrer'),
-            ),
-          ],
-        );
-      },
+      builder: (_) => _NameDialog(initial: controller.userName),
     );
-    text.dispose();
-    if (name == null || name.trim().isEmpty) return;
+    if (!mounted || name == null || name.trim().isEmpty) return;
 
     setState(() => _busy = true);
     try {
@@ -602,6 +575,61 @@ class _ActionTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Boîte de dialogue qui possède son propre contrôleur de texte.
+///
+/// Le contrôleur est libéré dans [dispose], une fois la fermeture terminée :
+/// cela évite l'écran d'erreur rouge en mode débogage.
+class _NameDialog extends StatefulWidget {
+  const _NameDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_NameDialog> createState() => _NameDialogState();
+}
+
+class _NameDialogState extends State<_NameDialog> {
+  late final TextEditingController _text =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  void _save() => Navigator.of(context).pop(_text.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Votre nom'),
+      content: TextField(
+        controller: _text,
+        autofocus: true,
+        maxLength: 60,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.done,
+        decoration: const InputDecoration(
+          hintText: 'Nom affiché dans Makasi',
+          counterText: '',
+        ),
+        onSubmitted: (_) => _save(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+        FilledButton(
+          onPressed: _save,
+          child: const Text('Enregistrer'),
+        ),
+      ],
     );
   }
 }

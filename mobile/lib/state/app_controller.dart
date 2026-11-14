@@ -520,13 +520,16 @@ class AppController extends ChangeNotifier {
   Future<void> updateDisplayName(String name) async {
     final clean = name.trim();
     if (clean.isEmpty) return;
-    await _auth?.updateDisplayName(clean);
     final account = _account;
     if (account != null) {
       final updated = account.copyWith(name: clean);
-      await _local.saveAccount(updated);
       _account = updated;
+      _profileName = clean;
+      notifyListeners();
+      await _local.saveAccount(updated);
+      return;
     }
+    await _auth?.updateDisplayName(clean);
     _profileName = clean;
     notifyListeners();
   }

@@ -70,14 +70,6 @@
     <label class="search-box"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="search" type="search" placeholder="Rechercher" aria-label="Rechercher" autocomplete="off"></label>
     <nav class="history" id="history" aria-label="Historique"></nav>
     <div class="side-bottom">
-      <button class="account-card" id="accountBtn" aria-label="Compte et synchronisation">
-        <span class="account-avatar" id="accountAvatar">?</span>
-        <span class="account-meta">
-          <strong id="accountName">Se connecter</strong>
-          <small id="accountSub">Gardez vos mémoires</small>
-        </span>
-        <svg class="ic account-chevron"><use href="#i-chevron"/></svg>
-      </button>
       <button class="install-pwa-btn" id="installAppBtn" title="Installer Makasi AI sur votre téléphone ou PC" aria-label="Installer l'application"><svg class="ic"><use href="#i-download"/></svg><span>Installer l’app</span></button>
       <div class="side-bottom-row">
         <a class="credit" href="https://wa.me/243971404824" target="_blank" rel="noopener noreferrer">Alphonse Design</a>
@@ -138,69 +130,7 @@
   </main>
 </div>
 
-<!-- ============ Compte : connexion / création ============ -->
-<div class="modal" id="authModal" hidden aria-hidden="true">
-  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-    <button class="icon-btn modal-close" id="authClose" aria-label="Fermer"><svg class="ic"><use href="#i-x"/></svg></button>
-    <div class="auth-brand">
-      <span class="auth-logo"><svg class="ic"><use href="#i-logo"/></svg></span>
-      <h2 id="authTitle">Votre mémoire Makasi</h2>
-      <p>Connectez-vous pour retrouver vos discussions sur le site et dans l’application mobile.</p>
-    </div>
-    <div class="auth-tabs" role="tablist">
-      <button type="button" class="auth-tab active" data-auth-tab="signin" role="tab">Connexion</button>
-      <button type="button" class="auth-tab" data-auth-tab="signup" role="tab">Créer un compte</button>
-    </div>
-    <form id="authForm" novalidate>
-      <label class="field" id="nameField" hidden>
-        <span>Nom ou pseudo</span>
-        <span class="field-wrap"><svg class="ic"><use href="#i-user"/></svg><input id="authName" type="text" autocomplete="name" placeholder="Alphonse" maxlength="50"></span>
-      </label>
-      <label class="field">
-        <span>E-mail</span>
-        <span class="field-wrap"><svg class="ic"><use href="#i-mail"/></svg><input id="authEmail" type="email" autocomplete="email" placeholder="vous@exemple.com" required></span>
-      </label>
-      <label class="field">
-        <span>Mot de passe</span>
-        <span class="field-wrap"><svg class="ic"><use href="#i-lock"/></svg><input id="authPassword" type="password" autocomplete="current-password" placeholder="6 caractères minimum" minlength="6" required></span>
-      </label>
-      <p class="auth-error" id="authError" hidden></p>
-      <p class="auth-info" id="authInfo" hidden></p>
-      <button class="auth-submit" id="authSubmit" type="submit"><span>Se connecter</span></button>
-    </form>
-    <button class="auth-link" id="forgotBtn" type="button">Mot de passe oublié ?</button>
-    <p class="auth-note"><svg class="ic"><use href="#i-cloud-check"/></svg> Vos discussions sont synchronisées et protégées par votre compte.</p>
-    <button class="auth-guest" id="authGuest" type="button">Continuer sans compte</button>
-  </div>
-</div>
-
-<!-- ============ Compte connecté ============ -->
-<div class="modal" id="profileModal" hidden aria-hidden="true">
-  <div class="modal-card profile-card" role="dialog" aria-modal="true" aria-labelledby="profileName">
-    <button class="icon-btn modal-close" id="profileClose" aria-label="Fermer"><svg class="ic"><use href="#i-x"/></svg></button>
-    <div class="profile-head">
-      <span class="account-avatar lg" id="profileAvatar">A</span>
-      <div>
-        <h2 id="profileName">Mon compte</h2>
-        <p id="profileEmail">—</p>
-      </div>
-    </div>
-    <div class="profile-state" id="profileSyncState">
-      <svg class="ic"><use href="#i-cloud-check"/></svg>
-      <span>Mémoire synchronisée</span>
-    </div>
-    <button class="profile-action" id="syncNowBtn" type="button">
-      <svg class="ic"><use href="#i-refresh"/></svg><span>Synchroniser maintenant</span>
-    </button>
-    <button class="profile-action danger" id="signOutBtn" type="button">
-      <svg class="ic"><use href="#i-logout"/></svg><span>Se déconnecter</span>
-    </button>
-    <p class="auth-note center">La déconnexion supprime la copie locale. Vos discussions restent dans votre compte.</p>
-  </div>
-</div>
-
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="cloud.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

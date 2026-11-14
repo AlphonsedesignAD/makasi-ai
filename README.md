@@ -15,15 +15,12 @@ makasi-ai/
 ├── index.html          # Site web
 ├── style.css
 ├── app.js              # Logique du site
-├── cloud.js            # Comptes web (optionnel)
-├── supabase/
-│   └── schema.sql      # Tables et sécurité (site web)
 ├── mobile/             # Application Flutter (Android, iOS, Web)
 ├── vercel.json
 └── .env.example
 ```
 
-- **Web** : HTML/CSS/JavaScript, hébergé sur Vercel.
+- **Web** : HTML/CSS/JavaScript, hébergé sur Vercel. Pas de compte : les discussions restent dans le navigateur.
 - **Mobile** : Flutter/Dart, dans `mobile/`.
 - **Compte mobile** : simple, enregistré sur le téléphone, avec export des conversations.
 - **IA** : uniquement appelée par les fonctions serverless Vercel. Aucune clé n’est envoyée au navigateur ni au téléphone.
@@ -67,17 +64,6 @@ GEMINI_API_KEY=votre_cle_serveur
 
 `GEMINI_API_KEY` est le nom technique attendu par le serveur. Cette valeur n’est jamais exposée au client. Des clés de secours peuvent être ajoutées avec `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3`… ou `GEMINI_API_KEYS`.
 
-## Comptes web (optionnel)
-
-Le site peut proposer des comptes synchronisés via Supabase :
-
-1. Créez un projet sur [supabase.com](https://supabase.com).
-2. Ouvrez **SQL Editor** et exécutez [`supabase/schema.sql`](supabase/schema.sql).
-3. Ajoutez `SUPABASE_URL` et `SUPABASE_ANON_KEY` sur Vercel.
-4. Vérifiez `https://votre-site.vercel.app/api/config`.
-
-Ces deux valeurs sont publiques et servies aux clients par `/api/config`. Ne mettez jamais la clé `service_role` dans le projet.
-
 ## Développement local
 
 ```bash
@@ -91,7 +77,6 @@ Pour vérifier la syntaxe JavaScript :
 
 ```bash
 node --check app.js
-node --check cloud.js
 node --check api/chat.js
 node --check api/config.js
 ```
@@ -101,4 +86,5 @@ node --check api/config.js
 - `.env` est ignoré par Git et ne doit jamais être commité.
 - Les clés du moteur d’IA ne quittent pas le serveur.
 - La génération d’images a été retirée du site et de l’application.
+- Le site n’a pas de compte : les discussions restent dans le navigateur.
 - Les conversations du téléphone ne sont pas envoyées à un serveur de comptes.
